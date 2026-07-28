@@ -127,7 +127,6 @@ function App() {
                       Pattern-based
                     </button>
                   </div>
-                  <div className="date-pill">Last 30 days</div>
                 </div>
               </div>
               <AnomalyTimelineChart budget={budget} pattern={pattern} theme={theme} view={timelineView} />

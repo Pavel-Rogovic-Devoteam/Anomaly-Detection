@@ -39,3 +39,5 @@ export type TimelineView = 'all' | 'budget' | 'pattern';
 export type NavSectionKey = 'inventory' | 'economics' | 'compliance';
 
 export type Theme = 'light' | 'dark';
+
+export type PeriodOption = 'current-month' | 'last-month' | 'last-3-months' | 'last-6-months' | 'custom';

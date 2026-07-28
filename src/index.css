@@ -219,6 +219,36 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
   border-color: rgba(108,106,255,0.35);
   color: var(--accent-2);
 }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Period selector ── */
+.period-selector { position: relative; }
+.period-menu {
+  position: absolute; top: calc(100% + 0.45rem); right: 0;
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: 0.55rem; padding: 0.36rem;
+  min-width: 12rem; z-index: 60;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+.period-menu-item {
+  padding: 0.55rem 0.73rem; border-radius: 0.45rem;
+  font-size: 1rem; color: var(--text-dim); cursor: pointer;
+  white-space: nowrap; transition: background-color 0.15s, color 0.15s;
+}
+.period-menu-item:hover { background: var(--surface-2); color: var(--text); }
+.period-menu-item.active { background: var(--accent-glow); color: var(--accent-2); }
+.period-custom-range {
+  display: flex; gap: 0.36rem; align-items: center;
+  padding: 0.55rem 0.36rem 0.36rem; margin-top: 0.27rem;
+  border-top: 1px solid var(--border);
+}
+.period-custom-range input {
+  width: 100%; min-width: 0;
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  border-radius: 0.45rem; padding: 0.36rem 0.45rem;
+  color: var(--text); font-size: 0.91rem;
+}
+.period-custom-range .page-btn { padding: 0.36rem 0.64rem; white-space: nowrap; }
 
 /* ── Stats row ── */
 .stats-row {
@@ -272,12 +302,6 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 }
 .card-title    { font-size: 1.18rem; font-weight: 600; color: var(--text); }
 .card-subtitle { font-size: 1rem; color: var(--text-muted); margin-top: 0.18rem; }
-.date-pill {
-  padding: 0.27rem 0.82rem;
-  background: var(--surface-2); border: 1px solid var(--border-2);
-  border-radius: 0.45rem; font-size: 1rem; color: var(--text-dim);
-  cursor: pointer; white-space: nowrap;
-}
 
 .chart-legend { display: flex; gap: 1.27rem; margin-top: 0.91rem; }
 .legend-item  { display: flex; align-items: center; gap: 0.45rem; font-size: 0.91rem; color: var(--text-muted); }
