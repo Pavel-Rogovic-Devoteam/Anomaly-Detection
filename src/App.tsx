@@ -3,6 +3,7 @@ import './utils/chartSetup';
 import type { DistView, NavSectionKey, SeverityFilter } from './types';
 import { INITIAL_BUDGET, INITIAL_PATTERN } from './data/anomalies';
 import { useSavedAnomalies } from './hooks/useSavedAnomalies';
+import { useTheme } from './hooks/useTheme';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { PageHeader } from './components/PageHeader';
@@ -34,6 +35,7 @@ function App() {
   const [savedOnly, setSavedOnly] = useState(false);
 
   const { isSaved, toggle: toggleSave, saved } = useSavedAnomalies();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const toggleSection = useCallback((key: NavSectionKey) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -74,7 +76,7 @@ function App() {
       <Sidebar collapsed={sidebarCollapsed} openSections={openSections} onToggleSection={toggleSection} />
 
       <div className={`main${sidebarCollapsed ? ' expanded' : ''}`}>
-        <Topbar onToggleSidebar={() => setSidebarCollapsed((v) => !v)} />
+        <Topbar onToggleSidebar={() => setSidebarCollapsed((v) => !v)} theme={theme} onToggleTheme={toggleTheme} />
 
         <main className="content">
           <PageHeader />
@@ -97,7 +99,7 @@ function App() {
                 </div>
                 <div className="date-pill">Last 30 days</div>
               </div>
-              <AnomalyTimelineChart budget={budget} pattern={pattern} />
+              <AnomalyTimelineChart budget={budget} pattern={pattern} theme={theme} />
               <div className="chart-legend">
                 <div className="legend-item">
                   <div className="legend-line" style={{ background: '#ef4444' }} />
@@ -110,7 +112,7 @@ function App() {
               </div>
             </div>
 
-            <DistributionCard budget={budget} pattern={pattern} view={distView} onChangeView={setDistView} />
+            <DistributionCard budget={budget} pattern={pattern} view={distView} onChangeView={setDistView} theme={theme} />
           </div>
 
           <div className="card anomaly-card">

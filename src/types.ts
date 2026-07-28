@@ -35,3 +35,5 @@ export type SeverityFilter = 'all' | Severity;
 export type DistView = 'provider' | 'service';
 
 export type NavSectionKey = 'inventory' | 'economics' | 'compliance';
+
+export type Theme = 'light' | 'dark';

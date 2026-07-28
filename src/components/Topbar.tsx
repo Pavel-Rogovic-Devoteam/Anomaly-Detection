@@ -1,4 +1,15 @@
-export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+import type { Theme } from '../types';
+import { ThemeToggle } from './ThemeToggle';
+
+export function Topbar({
+  onToggleSidebar,
+  theme,
+  onToggleTheme,
+}: {
+  onToggleSidebar: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
+}) {
   return (
     <div className="topbar">
       <button className="topbar-toggle" onClick={onToggleSidebar}>
@@ -8,6 +19,7 @@ export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
       </button>
+      <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       <div className="topbar-spacer" />
       <div className="cloud-logos">
         <div className="cloud-logo aws">

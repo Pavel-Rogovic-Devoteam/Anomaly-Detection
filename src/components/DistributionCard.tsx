@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import type { ChartOptions } from 'chart.js';
-import type { BudgetAnomaly, DistView, PatternAnomaly } from '../types';
+import type { BudgetAnomaly, DistView, PatternAnomaly, Theme } from '../types';
 import { categoryFor, SERVICE_CATEGORY_COLORS } from '../data/anomalies';
-import { TOOLTIP_STYLE } from '../utils/chartSetup';
+import { getTooltipStyle } from '../utils/chartSetup';
 
 interface DistRow {
   label: string;
@@ -39,11 +39,13 @@ export function DistributionCard({
   pattern,
   view,
   onChangeView,
+  theme,
 }: {
   budget: BudgetAnomaly[];
   pattern: PatternAnomaly[];
   view: DistView;
   onChangeView: (view: DistView) => void;
+  theme: Theme;
 }) {
   const all = useMemo(() => [...budget, ...pattern], [budget, pattern]);
   const rows = useMemo(() => (view === 'provider' ? providerRows(all) : serviceRows(all)), [view, all]);
@@ -72,10 +74,10 @@ export function DistributionCard({
       cutout: '72%',
       plugins: {
         legend: { display: false },
-        tooltip: TOOLTIP_STYLE,
+        tooltip: getTooltipStyle(theme),
       },
     }),
-    [],
+    [theme],
   );
 
   return (

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import type { ChartOptions, TooltipItem } from 'chart.js';
-import type { BudgetAnomaly, PatternAnomaly } from '../types';
+import type { BudgetAnomaly, PatternAnomaly, Theme } from '../types';
 import {
   TIMELINE_BUDGET_COSTS,
   TIMELINE_BUDGET_COUNTS,
@@ -9,7 +9,7 @@ import {
   TIMELINE_PATTERN_COUNTS,
 } from '../data/anomalies';
 import { eurRounded } from '../utils/format';
-import { getLast30Dates } from '../utils/chartSetup';
+import { getChartPalette, getLast30Dates } from '../utils/chartSetup';
 
 function buildNameArrays(budget: BudgetAnomaly[], pattern: PatternAnomaly[]) {
   const bNames: string[][] = Array.from({ length: 30 }, () => []);
@@ -25,8 +25,17 @@ function buildNameArrays(budget: BudgetAnomaly[], pattern: PatternAnomaly[]) {
   return { bNames, pNames };
 }
 
-export function AnomalyTimelineChart({ budget, pattern }: { budget: BudgetAnomaly[]; pattern: PatternAnomaly[] }) {
+export function AnomalyTimelineChart({
+  budget,
+  pattern,
+  theme,
+}: {
+  budget: BudgetAnomaly[];
+  pattern: PatternAnomaly[];
+  theme: Theme;
+}) {
   const { bNames, pNames } = useMemo(() => buildNameArrays(budget, pattern), [budget, pattern]);
+  const palette = useMemo(() => getChartPalette(theme), [theme]);
 
   const data = useMemo(
     () => ({
@@ -67,11 +76,11 @@ export function AnomalyTimelineChart({ budget, pattern }: { budget: BudgetAnomal
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#111428',
-          borderColor: '#1f2448',
+          backgroundColor: palette.surface2,
+          borderColor: palette.border2,
           borderWidth: 1,
-          titleColor: '#e8eafc',
-          bodyColor: '#8b96be',
+          titleColor: palette.text,
+          bodyColor: palette.textMuted,
           padding: 12,
           cornerRadius: 6,
           boxPadding: 4,
@@ -98,19 +107,19 @@ export function AnomalyTimelineChart({ budget, pattern }: { budget: BudgetAnomal
       },
       scales: {
         x: {
-          grid: { color: 'rgba(22,25,58,0.9)' },
-          ticks: { color: '#6272a0', font: { size: 9 }, maxTicksLimit: 8, maxRotation: 0 },
+          grid: { color: palette.grid },
+          ticks: { color: palette.textMuted, font: { size: 9 }, maxTicksLimit: 8, maxRotation: 0 },
           border: { display: false },
         },
         y: {
-          grid: { color: 'rgba(22,25,58,0.9)' },
-          ticks: { color: '#6272a0', font: { size: 9 }, stepSize: 1 },
+          grid: { color: palette.grid },
+          ticks: { color: palette.textMuted, font: { size: 9 }, stepSize: 1 },
           border: { display: false },
           min: 0,
         },
       },
     }),
-    [bNames, pNames],
+    [bNames, pNames, palette],
   );
 
   return <Line data={data} options={options} height={82} />;
