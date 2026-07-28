@@ -229,8 +229,11 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 .stat-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 0.73rem; padding: 1.27rem 1.45rem;
+  cursor: pointer; user-select: none;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
+.stat-card:hover { border-color: var(--border-2); }
+.stat-card.active { border-color: var(--accent); background: var(--accent-glow); }
 .stat-label {
   font-size: 0.91rem; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.6px;

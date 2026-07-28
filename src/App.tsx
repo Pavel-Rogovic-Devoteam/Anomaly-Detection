@@ -88,6 +88,14 @@ function App() {
             budgetTotal={budget.length}
             patternActive={stats.patternActive}
             patternTotal={pattern.length}
+            isAllActive={activeSev === 'all'}
+            isCriticalActive={activeSev === 'critical'}
+            isBudgetActive={activeTab === 'budget'}
+            isPatternActive={activeTab === 'pattern'}
+            onSelectAll={() => setActiveSev('all')}
+            onToggleCritical={() => setActiveSev((prev) => (prev === 'critical' ? 'all' : 'critical'))}
+            onSelectBudget={() => setActiveTab('budget')}
+            onSelectPattern={() => setActiveTab('pattern')}
           />
 
           <div className="charts-row">
