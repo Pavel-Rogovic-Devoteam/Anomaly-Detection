@@ -287,7 +287,7 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 /* ── Charts row ── */
 .charts-row {
   display: grid;
-  grid-template-columns: 1fr clamp(260px, 19vw, 400px);
+  grid-template-columns: minmax(0, 1fr) clamp(260px, 19vw, 400px);
   gap: 1.09rem; margin-bottom: 1.45rem;
 }
 
@@ -302,6 +302,11 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 }
 .card-title    { font-size: 1.18rem; font-weight: 600; color: var(--text); }
 .card-subtitle { font-size: 1rem; color: var(--text-muted); margin-top: 0.18rem; }
+
+/* Explicit, non-grid-derived box so Chart.js's resize observer has a stable
+   target — a canvas placed directly inside a CSS grid item can otherwise get
+   stuck (circular size dependency between the grid track and its content). */
+.timeline-chart-wrapper { position: relative; width: 100%; height: 19rem; }
 
 .chart-legend { display: flex; gap: 1.27rem; margin-top: 0.91rem; }
 .legend-item  { display: flex; align-items: center; gap: 0.45rem; font-size: 0.91rem; color: var(--text-muted); }
@@ -551,7 +556,7 @@ tr:hover td { background: rgba(108,106,255,0.05); }
 
 /* ── Responsive ── */
 @media (max-width: 1200px) {
-  .charts-row { grid-template-columns: 1fr; }
+  .charts-row { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 900px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }

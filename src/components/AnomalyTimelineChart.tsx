@@ -79,7 +79,7 @@ export function AnomalyTimelineChart({
   const options: ChartOptions<'line'> = useMemo(
     () => ({
       responsive: true,
-      maintainAspectRatio: true,
+      maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
@@ -130,5 +130,9 @@ export function AnomalyTimelineChart({
     [bNames, pNames, palette],
   );
 
-  return <Line data={data} options={options} height={82} />;
+  return (
+    <div className="timeline-chart-wrapper">
+      <Line data={data} options={options} />
+    </div>
+  );
 }
