@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import './utils/chartSetup';
-import type { DistView, NavSectionKey, SeverityFilter } from './types';
+import type { DistView, NavSectionKey, SeverityFilter, TimelineView } from './types';
 import { INITIAL_BUDGET, INITIAL_PATTERN } from './data/anomalies';
 import { useSavedAnomalies } from './hooks/useSavedAnomalies';
 import { useTheme } from './hooks/useTheme';
@@ -29,6 +29,7 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<Tab>('budget');
   const [distView, setDistView] = useState<DistView>('provider');
+  const [timelineView, setTimelineView] = useState<TimelineView>('all');
 
   const [activeSev, setActiveSev] = useState<SeverityFilter>('all');
   const [search, setSearch] = useState('');
@@ -105,18 +106,44 @@ function App() {
                   <div className="card-title">Anomaly Timeline</div>
                   <div className="card-subtitle">Daily count · Apr 6 – May 7, 2026</div>
                 </div>
-                <div className="date-pill">Last 30 days</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                  <div className="dist-toggle">
+                    <button
+                      className={`dist-toggle-btn${timelineView === 'all' ? ' active' : ''}`}
+                      onClick={() => setTimelineView('all')}
+                    >
+                      All anomalies
+                    </button>
+                    <button
+                      className={`dist-toggle-btn${timelineView === 'budget' ? ' active' : ''}`}
+                      onClick={() => setTimelineView('budget')}
+                    >
+                      Budget
+                    </button>
+                    <button
+                      className={`dist-toggle-btn${timelineView === 'pattern' ? ' active' : ''}`}
+                      onClick={() => setTimelineView('pattern')}
+                    >
+                      Pattern-based
+                    </button>
+                  </div>
+                  <div className="date-pill">Last 30 days</div>
+                </div>
               </div>
-              <AnomalyTimelineChart budget={budget} pattern={pattern} theme={theme} />
+              <AnomalyTimelineChart budget={budget} pattern={pattern} theme={theme} view={timelineView} />
               <div className="chart-legend">
-                <div className="legend-item">
-                  <div className="legend-line" style={{ background: '#ef4444' }} />
-                  Budget-Based
-                </div>
-                <div className="legend-item">
-                  <div className="legend-line" style={{ background: '#8b5cf6' }} />
-                  Pattern-Based
-                </div>
+                {timelineView !== 'pattern' && (
+                  <div className="legend-item">
+                    <div className="legend-line" style={{ background: '#ef4444' }} />
+                    Budget-Based
+                  </div>
+                )}
+                {timelineView !== 'budget' && (
+                  <div className="legend-item">
+                    <div className="legend-line" style={{ background: '#8b5cf6' }} />
+                    Pattern-Based
+                  </div>
+                )}
               </div>
             </div>
 
