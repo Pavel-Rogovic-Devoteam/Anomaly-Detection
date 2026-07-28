@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import './utils/chartSetup';
-import type { DistView, NavSectionKey, SeverityFilter, TimelineView } from './types';
+import type { DistView, NavSectionKey, ProviderFilter, SeverityFilter, TimelineView } from './types';
 import { INITIAL_BUDGET, INITIAL_PATTERN } from './data/anomalies';
 import { useSavedAnomalies } from './hooks/useSavedAnomalies';
 import { useTheme } from './hooks/useTheme';
@@ -32,6 +32,7 @@ function App() {
   const [timelineView, setTimelineView] = useState<TimelineView>('all');
 
   const [activeSev, setActiveSev] = useState<SeverityFilter>('all');
+  const [activeProvider, setActiveProvider] = useState<ProviderFilter>('all');
   const [search, setSearch] = useState('');
   const [savedOnly, setSavedOnly] = useState(false);
 
@@ -52,12 +53,18 @@ function App() {
 
   const searchQ = search.toLowerCase().trim();
   const matchesFilters = useCallback(
-    (a: { sev: string; id: string; svc: string; acct: string }) =>
+    (a: { sev: string; prov: string; id: string; svc: string; acct: string }) =>
       (activeSev === 'all' || a.sev === activeSev) &&
+      (activeProvider === 'all' || a.prov === activeProvider) &&
       (!savedOnly || saved.has(a.id)) &&
       (!searchQ || a.svc.toLowerCase().includes(searchQ) || a.acct.toLowerCase().includes(searchQ)),
-    [activeSev, savedOnly, saved, searchQ],
+    [activeSev, activeProvider, savedOnly, saved, searchQ],
   );
+
+  const clearQuickFilters = useCallback(() => {
+    setActiveSev('all');
+    setActiveProvider('all');
+  }, []);
 
   const filteredBudget = useMemo(() => budget.filter(matchesFilters), [budget, matchesFilters]);
   const filteredPattern = useMemo(() => pattern.filter(matchesFilters), [pattern, matchesFilters]);
@@ -164,6 +171,9 @@ function App() {
               onSearchChange={setSearch}
               activeSev={activeSev}
               onSetSev={setActiveSev}
+              activeProvider={activeProvider}
+              onSetProvider={setActiveProvider}
+              onClearAll={clearQuickFilters}
               savedOnly={savedOnly}
               onToggleSavedOnly={() => setSavedOnly((v) => !v)}
               savedCount={saved.size}

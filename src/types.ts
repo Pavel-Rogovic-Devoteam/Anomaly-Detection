@@ -32,6 +32,8 @@ export interface PatternAnomaly {
 
 export type SeverityFilter = 'all' | Severity;
 
+export type ProviderFilter = 'all' | Provider;
+
 export type DistView = 'provider' | 'service';
 
 export type TimelineView = 'all' | 'budget' | 'pattern';

@@ -1,4 +1,5 @@
-import type { SeverityFilter } from '../types';
+import type { Provider, ProviderFilter, SeverityFilter } from '../types';
+import { PROVIDER_COLORS, PROVIDER_LABELS } from '../utils/format';
 
 const SEV_FILTERS: { key: SeverityFilter; label: string; dot?: string }[] = [
   { key: 'critical', label: 'Critical', dot: '#f87171' },
@@ -6,11 +7,16 @@ const SEV_FILTERS: { key: SeverityFilter; label: string; dot?: string }[] = [
   { key: 'medium', label: 'Medium', dot: '#fbbf24' },
 ];
 
+const PROVIDER_FILTERS: Provider[] = ['aws', 'azure', 'gcp'];
+
 export function TableControls({
   search,
   onSearchChange,
   activeSev,
   onSetSev,
+  activeProvider,
+  onSetProvider,
+  onClearAll,
   savedOnly,
   onToggleSavedOnly,
   savedCount,
@@ -19,10 +25,15 @@ export function TableControls({
   onSearchChange: (value: string) => void;
   activeSev: SeverityFilter;
   onSetSev: (sev: SeverityFilter) => void;
+  activeProvider: ProviderFilter;
+  onSetProvider: (prov: ProviderFilter) => void;
+  onClearAll: () => void;
   savedOnly: boolean;
   onToggleSavedOnly: () => void;
   savedCount: number;
 }) {
+  const allActive = activeSev === 'all' && activeProvider === 'all';
+
   return (
     <div className="table-controls">
       <div className="search-box">
@@ -33,7 +44,7 @@ export function TableControls({
         <input type="text" placeholder="Search…" value={search} onChange={(e) => onSearchChange(e.target.value)} />
       </div>
 
-      <div className={`filter-btn${activeSev === 'all' ? ' active' : ''}`} onClick={() => onSetSev('all')}>
+      <div className={`filter-btn${allActive ? ' active' : ''}`} onClick={onClearAll}>
         All Filters
       </div>
 
@@ -41,6 +52,15 @@ export function TableControls({
         <div key={f.key} className={`filter-btn${activeSev === f.key ? ' active' : ''}`} onClick={() => onSetSev(f.key)}>
           <span style={{ width: 5, height: 5, borderRadius: '50%', background: f.dot, flexShrink: 0, display: 'inline-block' }} />
           {f.label}
+        </div>
+      ))}
+
+      {PROVIDER_FILTERS.map((p) => (
+        <div key={p} className={`filter-btn${activeProvider === p ? ' active' : ''}`} onClick={() => onSetProvider(p)}>
+          <span
+            style={{ width: 5, height: 5, borderRadius: '50%', background: PROVIDER_COLORS[p], flexShrink: 0, display: 'inline-block' }}
+          />
+          {PROVIDER_LABELS[p]}
         </div>
       ))}
 
