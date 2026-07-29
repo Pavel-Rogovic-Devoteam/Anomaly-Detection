@@ -169,16 +169,19 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 .topbar-toggle:hover { background: var(--surface-2); color: var(--text); }
 .topbar-spacer { flex: 1; }
 
-.cloud-logos { display: flex; align-items: center; gap: 1.09rem; }
+.cloud-logos { display: flex; align-items: center; gap: 0.36rem; }
 .cloud-logo {
   display: flex; align-items: center; gap: 0.36rem;
   font-size: 0.91rem; font-weight: 600; cursor: pointer;
-  opacity: 0.75; transition: opacity 0.15s;
+  padding: 0.27rem 0.55rem; border-radius: 0.45rem;
+  border: 1px solid transparent;
+  opacity: 0.75; transition: opacity 0.15s, background-color 0.15s, border-color 0.15s;
 }
-.cloud-logo:hover { opacity: 1; }
+.cloud-logo:hover { opacity: 1; background: var(--surface-2); }
+.cloud-logo.active { opacity: 1; background: var(--surface-2); border-color: currentColor; }
 .cloud-logo.aws   { color: #ff9900; }
-.cloud-logo.azure { color: #00a1f1; }
-.cloud-logo.gcp   { color: var(--text-dim); }
+.cloud-logo.azure { color: #0078d4; }
+.cloud-logo.gcp   { color: #4285f4; }
 
 .client-chip {
   display: flex; align-items: center; gap: 0.45rem;

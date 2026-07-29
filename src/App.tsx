@@ -84,7 +84,13 @@ function App() {
       <Sidebar collapsed={sidebarCollapsed} openSections={openSections} onToggleSection={toggleSection} />
 
       <div className={`main${sidebarCollapsed ? ' expanded' : ''}`}>
-        <Topbar onToggleSidebar={() => setSidebarCollapsed((v) => !v)} theme={theme} onToggleTheme={toggleTheme} />
+        <Topbar
+          onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          activeProvider={activeProvider}
+          onSetProvider={setActiveProvider}
+        />
 
         <main className="content">
           <PageHeader />
