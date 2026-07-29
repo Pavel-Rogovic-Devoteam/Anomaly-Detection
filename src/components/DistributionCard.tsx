@@ -72,9 +72,10 @@ export function DistributionCard({
       responsive: true,
       maintainAspectRatio: true,
       cutout: '72%',
+      animation: false,
       plugins: {
         legend: { display: false },
-        tooltip: getTooltipStyle(theme),
+        tooltip: { ...getTooltipStyle(theme), animation: false },
       },
     }),
     [theme],

@@ -80,10 +80,12 @@ export function AnomalyTimelineChart({
     () => ({
       responsive: true,
       maintainAspectRatio: false,
+      animation: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
+          animation: false,
           backgroundColor: palette.surface2,
           borderColor: palette.border2,
           borderWidth: 1,
