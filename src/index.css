@@ -525,7 +525,16 @@ tr:hover td { background: rgba(108,106,255,0.05); }
 .alert-pill.warning { background: rgba(108,106,255,0.2); color: var(--accent-2); }
 .alert-pill.danger  { background: rgba(239,68,68,0.2);   color: #f87171; }
 
-.spark-cell { width: 10rem; }
+.spark-cell { width: 10rem; display: flex; flex-direction: column; gap: 0.36rem; }
+
+.iqr-badge {
+  display: inline-flex; align-items: center; align-self: flex-start;
+  padding: 0.09rem 0.45rem; border-radius: 0.73rem;
+  font-size: 0.73rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+  background: var(--surface-3); color: var(--text-muted);
+  white-space: nowrap; cursor: default;
+}
+.iqr-badge.outlier { background: rgba(239,68,68,0.12); color: #f87171; }
 
 .dev-badge { font-size: 1rem; font-weight: 700; white-space: nowrap; }
 .dev-badge.critical { color: #f87171; }

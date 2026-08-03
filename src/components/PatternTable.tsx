@@ -2,11 +2,13 @@ import { useMemo } from 'react';
 import type { PatternAnomaly, Severity } from '../types';
 import { SEV_RANK } from '../data/anomalies';
 import { eur } from '../utils/format';
+import { computeIQRBounds, isIQROutlier } from '../utils/iqr';
 import type { Column } from '../utils/sort';
 import { sortRows } from '../utils/sort';
+import { sparkData } from '../utils/sparkline';
 import { useSortState } from '../hooks/useSortState';
 import { SortableThead } from './SortableThead';
-import { DetectedCell, ProviderLabel, SaveButton, SeverityBadge, ServiceCell, Sparkline } from './TableBits';
+import { DetectedCell, IqrBadge, ProviderLabel, SaveButton, SeverityBadge, ServiceCell, Sparkline } from './TableBits';
 
 const COLUMNS: Column<PatternAnomaly>[] = [
   { key: null, label: '' },
@@ -41,6 +43,13 @@ function PatternRow({
   onResolve: (id: string) => void;
 }) {
   const spikeMult = anomaly.spike / anomaly.base;
+  const spikeIdx = 29 - anomaly.ago;
+  const series = useMemo(
+    () => sparkData(anomaly.base, spikeMult, anomaly.ago, anomaly.seed),
+    [anomaly.base, spikeMult, anomaly.ago, anomaly.seed],
+  );
+  const bounds = useMemo(() => computeIQRBounds(series), [series]);
+  const isOutlier = isIQROutlier(series[spikeIdx], bounds);
 
   return (
     <tr>
@@ -65,7 +74,8 @@ function PatternRow({
       </td>
       <td>
         <div className="spark-cell">
-          <Sparkline base={anomaly.base} spikeMult={spikeMult} spikeDayFromEnd={anomaly.ago} seed={anomaly.seed} color={SPARK_COLOR[anomaly.sev]} />
+          <Sparkline data={series} spikeIdx={spikeIdx} color={SPARK_COLOR[anomaly.sev]} bounds={bounds} isOutlier={isOutlier} />
+          <IqrBadge isOutlier={isOutlier} bounds={bounds} />
         </div>
       </td>
       <td>

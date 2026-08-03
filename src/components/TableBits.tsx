@@ -1,7 +1,6 @@
-import { useMemo } from 'react';
 import type { Provider, Severity } from '../types';
 import { PROVIDER_COLORS, PROVIDER_LABELS, alertPillClass, detectedText } from '../utils/format';
-import { sparkData } from '../utils/sparkline';
+import type { IQRBounds } from '../utils/iqr';
 
 export function SaveButton({ saved, onClick }: { saved: boolean; onClick: () => void }) {
   return (
@@ -77,43 +76,56 @@ const SPARK_W = 110;
 const SPARK_H = 32;
 
 export function Sparkline({
-  base,
-  spikeMult,
-  spikeDayFromEnd,
-  seed,
+  data,
+  spikeIdx,
   color,
+  bounds,
+  isOutlier,
 }: {
-  base: number;
-  spikeMult: number;
-  spikeDayFromEnd: number;
-  seed: number;
+  data: number[];
+  spikeIdx: number;
   color: string;
+  bounds: IQRBounds;
+  isOutlier: boolean;
 }) {
-  const data = useMemo(
-    () => sparkData(base, spikeMult, spikeDayFromEnd, seed),
-    [base, spikeMult, spikeDayFromEnd, seed],
-  );
-  const spikeIdx = 29 - spikeDayFromEnd;
-  const max = Math.max(...data);
+  const max = Math.max(...data, bounds.upperBound);
   const minV = Math.min(...data) * 0.85;
   const range = max - minV || 1;
+  const toY = (v: number) => SPARK_H - ((v - minV) / range) * (SPARK_H - 6) - 3;
 
   const points = data
-    .map((v, i) => {
-      const x = (i / 29) * SPARK_W;
-      const y = SPARK_H - ((v - minV) / range) * (SPARK_H - 6) - 3;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
+    .map((v, i) => `${((i / 29) * SPARK_W).toFixed(1)},${toY(v).toFixed(1)}`)
     .join(' ');
 
   const sx = (spikeIdx / 29) * SPARK_W;
-  const sv = data[spikeIdx];
-  const sy = SPARK_H - ((sv - minV) / range) * (SPARK_H - 6) - 3;
+  const sy = toY(data[spikeIdx]);
+  const boundY = toY(bounds.upperBound);
+  const pointColor = isOutlier ? color : 'var(--text-muted)';
 
   return (
     <svg width={SPARK_W} height={SPARK_H} viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} style={{ overflow: 'visible', display: 'block' }}>
+      <title>{`IQR upper bound: ${bounds.upperBound.toFixed(1)} (Q1 ${bounds.q1.toFixed(1)} · Q3 ${bounds.q3.toFixed(1)})`}</title>
+      <line
+        x1="0"
+        y1={boundY.toFixed(1)}
+        x2={SPARK_W}
+        y2={boundY.toFixed(1)}
+        stroke="var(--text-muted)"
+        strokeWidth="1"
+        strokeDasharray="2,2"
+        opacity="0.5"
+      />
       <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" opacity={0.8} />
-      <circle cx={sx.toFixed(1)} cy={sy.toFixed(1)} r={3} fill={color} stroke={color} strokeOpacity={0.25} strokeWidth={4} />
+      <circle cx={sx.toFixed(1)} cy={sy.toFixed(1)} r={3} fill={pointColor} stroke={pointColor} strokeOpacity={0.25} strokeWidth={4} />
     </svg>
+  );
+}
+
+export function IqrBadge({ isOutlier, bounds }: { isOutlier: boolean; bounds: IQRBounds }) {
+  const title = `Q1 ${bounds.q1.toFixed(1)} · Q3 ${bounds.q3.toFixed(1)} · IQR ${bounds.iqr.toFixed(1)} · Upper bound ${bounds.upperBound.toFixed(1)}`;
+  return (
+    <span className={`iqr-badge${isOutlier ? ' outlier' : ''}`} title={title}>
+      {isOutlier ? 'IQR outlier' : 'within IQR'}
+    </span>
   );
 }
