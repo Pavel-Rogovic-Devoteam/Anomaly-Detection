@@ -2,25 +2,15 @@ import { useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import type { ChartOptions } from 'chart.js';
 import type { Theme, TimelineView } from '../types';
-import { TIMELINE_BUDGET_COSTS, TIMELINE_DAILY_SPEND, TIMELINE_PATTERN_COSTS } from '../data/anomalies';
+import { TIMELINE_BUDGET_SPEND, TIMELINE_DAILY_SPEND, TIMELINE_PATTERN_SPEND } from '../data/anomalies';
 import type { CurrentMonthTimeline } from '../utils/currentMonthTimeline';
 import { computeIQRBounds, isIQROutlier } from '../utils/iqr';
-import type { IQRBounds } from '../utils/iqr';
 import { eurRounded } from '../utils/format';
 import { getChartPalette, getLast30Dates } from '../utils/chartSetup';
 
 const BUDGET_COLOR = '#ef4444';
 const PATTERN_COLOR = '#8b5cf6';
 const BAND_FILL = 'rgba(148,163,184,0.16)';
-
-type DayType = 'budget' | 'pattern' | null;
-
-function classifyDays(spend: number[], budgetCost: number[], patternCost: number[], bounds: IQRBounds): DayType[] {
-  return spend.map((v, i) => {
-    if (!isIQROutlier(v, bounds)) return null;
-    return (budgetCost[i] ?? 0) >= (patternCost[i] ?? 0) ? 'budget' : 'pattern';
-  });
-}
 
 export function AnomalyTimelineChart({
   theme,
@@ -33,44 +23,47 @@ export function AnomalyTimelineChart({
 }) {
   const palette = useMemo(() => getChartPalette(theme), [theme]);
 
-  const { labels, spend, budgetCost, patternCost, todayIndex, bounds } = useMemo(() => {
+  const { labels, spend, budgetSpend, patternSpend, todayIndex, spendBounds, budgetBounds, patternBounds } = useMemo(() => {
     if (monthData) {
-      const elapsed = monthData.spend.slice(0, monthData.todayDate);
+      const elapsed = monthData.todayDate;
       return {
         labels: monthData.labels,
         spend: monthData.spend,
-        budgetCost: monthData.budgetCost,
-        patternCost: monthData.patternCost,
-        todayIndex: monthData.todayDate - 1,
-        bounds: computeIQRBounds(elapsed),
+        budgetSpend: monthData.budgetSpend,
+        patternSpend: monthData.patternSpend,
+        todayIndex: elapsed - 1,
+        spendBounds: computeIQRBounds(monthData.spend.slice(0, elapsed)),
+        budgetBounds: computeIQRBounds(monthData.budgetSpend.slice(0, elapsed)),
+        patternBounds: computeIQRBounds(monthData.patternSpend.slice(0, elapsed)),
       };
     }
     return {
       labels: getLast30Dates(),
       spend: TIMELINE_DAILY_SPEND,
-      budgetCost: TIMELINE_BUDGET_COSTS,
-      patternCost: TIMELINE_PATTERN_COSTS,
+      budgetSpend: TIMELINE_BUDGET_SPEND,
+      patternSpend: TIMELINE_PATTERN_SPEND,
       todayIndex: TIMELINE_DAILY_SPEND.length - 1,
-      bounds: computeIQRBounds(TIMELINE_DAILY_SPEND),
+      spendBounds: computeIQRBounds(TIMELINE_DAILY_SPEND),
+      budgetBounds: computeIQRBounds(TIMELINE_BUDGET_SPEND),
+      patternBounds: computeIQRBounds(TIMELINE_PATTERN_SPEND),
     };
   }, [monthData]);
 
   const showForecast = monthData !== null && monthData.isIncomplete;
-  const types = useMemo(() => classifyDays(spend, budgetCost, patternCost, bounds), [spend, budgetCost, patternCost, bounds]);
+
+  const isBudgetOutlier = useMemo(() => budgetSpend.map((v) => isIQROutlier(v, budgetBounds)), [budgetSpend, budgetBounds]);
+  const isPatternOutlier = useMemo(() => patternSpend.map((v) => isIQROutlier(v, patternBounds)), [patternSpend, patternBounds]);
+
+  const showBudgetDots = view !== 'pattern';
+  const showPatternDots = view !== 'budget';
 
   const data = useMemo(() => {
     const n = spend.length;
-    const lowerBand = new Array(n).fill(Math.max(0, bounds.q1 - 1.5 * bounds.iqr));
-    const upperBand = new Array(n).fill(bounds.upperBound);
+    const lowerBand = new Array(n).fill(Math.max(0, spendBounds.q1 - 1.5 * spendBounds.iqr));
+    const upperBand = new Array(n).fill(spendBounds.upperBound);
 
-    const allow = (t: DayType) => {
-      if (!t) return false;
-      if (view === 'budget') return t === 'budget';
-      if (view === 'pattern') return t === 'pattern';
-      return true;
-    };
-    const anomalyPoints = spend.map((v, i) => (allow(types[i]) ? v : null));
-    const pointColors = types.map((t) => (t === 'budget' ? BUDGET_COLOR : t === 'pattern' ? PATTERN_COLOR : 'transparent'));
+    const budgetPoints = spend.map((v, i) => (showBudgetDots && isBudgetOutlier[i] ? v : null));
+    const patternPoints = spend.map((v, i) => (showPatternDots && isPatternOutlier[i] ? v : null));
 
     return {
       labels,
@@ -109,19 +102,30 @@ export function AnomalyTimelineChart({
             : {}),
         },
         {
-          label: 'Anomaly',
-          data: anomalyPoints,
+          label: 'Pattern anomaly',
+          data: patternPoints,
+          borderWidth: 0,
+          showLine: false,
+          pointRadius: 6,
+          pointHoverRadius: 7,
+          pointBackgroundColor: PATTERN_COLOR,
+          pointBorderColor: PATTERN_COLOR,
+          spanGaps: false,
+        },
+        {
+          label: 'Budget anomaly',
+          data: budgetPoints,
           borderWidth: 0,
           showLine: false,
           pointRadius: 5,
           pointHoverRadius: 6,
-          pointBackgroundColor: pointColors,
-          pointBorderColor: pointColors,
+          pointBackgroundColor: BUDGET_COLOR,
+          pointBorderColor: BUDGET_COLOR,
           spanGaps: false,
         },
       ],
     };
-  }, [spend, types, bounds, palette, labels, showForecast, todayIndex, view]);
+  }, [spend, isBudgetOutlier, isPatternOutlier, showBudgetDots, showPatternDots, spendBounds, palette, labels, showForecast, todayIndex]);
 
   const options: ChartOptions<'line'> = useMemo(
     () => ({
@@ -147,14 +151,13 @@ export function AnomalyTimelineChart({
             label: (item) => {
               const i = item.dataIndex;
               const value = spend[i];
-              const type = types[i];
               const isForecastPoint = showForecast && i > todayIndex;
               const lines = [`Daily spend: ${eurRounded(value)}${isForecastPoint ? ' (forecast)' : ''}`];
-              if (type) {
-                const cost = type === 'budget' ? budgetCost[i] : patternCost[i];
-                const tag = type === 'budget' ? 'Budget breach' : 'Pattern spike';
-                lines.push(`⚠ ${tag} — above IQR upper bound (${eurRounded(bounds.upperBound)})`);
-                if (cost > 0) lines.push(`  Cost impact: ${eurRounded(cost)}`);
+              if (isBudgetOutlier[i]) {
+                lines.push(`⚠ Budget breach — above IQR upper bound (${eurRounded(budgetBounds.upperBound)})`);
+              }
+              if (isPatternOutlier[i]) {
+                lines.push(`⚠ Pattern spike — above IQR upper bound (${eurRounded(patternBounds.upperBound)})`);
               }
               return lines;
             },
@@ -175,7 +178,7 @@ export function AnomalyTimelineChart({
         },
       },
     }),
-    [palette, spend, types, budgetCost, patternCost, bounds, showForecast, todayIndex],
+    [palette, spend, isBudgetOutlier, isPatternOutlier, budgetBounds, patternBounds, showForecast, todayIndex],
   );
 
   return (

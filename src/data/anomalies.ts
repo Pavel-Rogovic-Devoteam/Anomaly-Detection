@@ -37,13 +37,19 @@ function seededSeries(seed: number, length: number, base: number, spread: number
   });
 }
 
-const DAILY_SPEND_BASELINE = seededSeries(11, 30, 980, 260);
+/** Two separate spend channels, each with its own baseline — Budget and Pattern are independent detection
+ *  mechanisms elsewhere in the app, and merging them into one series before computing IQR washed out
+ *  pattern-driven spikes (smaller in absolute €) against budget-driven ones (larger in absolute €). Each
+ *  channel gets its own IQR bounds computed from its own series, so a spike only needs to be large relative
+ *  to its own channel's normal range, not to the combined total. */
+const BUDGET_SPEND_BASELINE = seededSeries(11, 30, 620, 170);
+const PATTERN_SPEND_BASELINE = seededSeries(23, 30, 340, 110);
 
-/** Total daily spend across services — baseline noise plus that day's budget/pattern cost impact, so the days
- *  already carrying an anomaly cost naturally show up as spend spikes. */
-export const TIMELINE_DAILY_SPEND: number[] = DAILY_SPEND_BASELINE.map((v, i) =>
-  Math.round(v + TIMELINE_BUDGET_COSTS[i] + TIMELINE_PATTERN_COSTS[i]),
-);
+export const TIMELINE_BUDGET_SPEND: number[] = BUDGET_SPEND_BASELINE.map((v, i) => Math.round(v + TIMELINE_BUDGET_COSTS[i]));
+export const TIMELINE_PATTERN_SPEND: number[] = PATTERN_SPEND_BASELINE.map((v, i) => Math.round(v + TIMELINE_PATTERN_COSTS[i]));
+
+/** Total daily spend across services, for the chart's single grayscale trend line. */
+export const TIMELINE_DAILY_SPEND: number[] = TIMELINE_BUDGET_SPEND.map((v, i) => v + TIMELINE_PATTERN_SPEND[i]);
 
 const SERVICE_CATEGORY: Record<string, string> = {
   'EC2 Production Cluster': 'Compute',

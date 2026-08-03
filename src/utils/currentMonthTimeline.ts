@@ -1,4 +1,4 @@
-import { TIMELINE_BUDGET_COSTS, TIMELINE_DAILY_SPEND, TIMELINE_PATTERN_COSTS } from '../data/anomalies';
+import { TIMELINE_BUDGET_SPEND, TIMELINE_PATTERN_SPEND } from '../data/anomalies';
 
 export interface CurrentMonthTimeline {
   labels: string[];
@@ -7,8 +7,8 @@ export interface CurrentMonthTimeline {
   isIncomplete: boolean;
   monthLabel: string;
   spend: number[];
-  budgetCost: number[];
-  patternCost: number[];
+  budgetSpend: number[];
+  patternSpend: number[];
 }
 
 /** Extends an elapsed-so-far series to `totalDays` by cyclically repeating the observed pattern. */
@@ -27,9 +27,11 @@ export function buildCurrentMonthTimeline(): CurrentMonthTimeline {
     new Date(year, monthIndex, i + 1).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
   );
 
-  const spendSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_DAILY_SPEND[i % TIMELINE_DAILY_SPEND.length]);
-  const budgetCostSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_BUDGET_COSTS[i % TIMELINE_BUDGET_COSTS.length]);
-  const patternCostSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_PATTERN_COSTS[i % TIMELINE_PATTERN_COSTS.length]);
+  const budgetSpendSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_BUDGET_SPEND[i % TIMELINE_BUDGET_SPEND.length]);
+  const patternSpendSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_PATTERN_SPEND[i % TIMELINE_PATTERN_SPEND.length]);
+
+  const budgetSpend = extendCyclically(budgetSpendSoFar, todayDate, daysInMonth);
+  const patternSpend = extendCyclically(patternSpendSoFar, todayDate, daysInMonth);
 
   return {
     labels,
@@ -37,8 +39,8 @@ export function buildCurrentMonthTimeline(): CurrentMonthTimeline {
     todayDate,
     isIncomplete: todayDate < daysInMonth,
     monthLabel: now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
-    spend: extendCyclically(spendSoFar, todayDate, daysInMonth),
-    budgetCost: extendCyclically(budgetCostSoFar, todayDate, daysInMonth),
-    patternCost: extendCyclically(patternCostSoFar, todayDate, daysInMonth),
+    spend: budgetSpend.map((v, i) => v + patternSpend[i]),
+    budgetSpend,
+    patternSpend,
   };
 }
