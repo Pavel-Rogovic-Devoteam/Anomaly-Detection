@@ -1,148 +1,127 @@
 import { useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
-import type { ChartOptions, TooltipItem } from 'chart.js';
-import type { BudgetAnomaly, PatternAnomaly, Theme, TimelineView } from '../types';
-import {
-  TIMELINE_BUDGET_COSTS,
-  TIMELINE_BUDGET_COUNTS,
-  TIMELINE_PATTERN_COSTS,
-  TIMELINE_PATTERN_COUNTS,
-} from '../data/anomalies';
+import type { ChartOptions } from 'chart.js';
+import type { Theme, TimelineView } from '../types';
+import { TIMELINE_BUDGET_COSTS, TIMELINE_DAILY_SPEND, TIMELINE_PATTERN_COSTS } from '../data/anomalies';
 import type { CurrentMonthTimeline } from '../utils/currentMonthTimeline';
+import { computeIQRBounds, isIQROutlier } from '../utils/iqr';
+import type { IQRBounds } from '../utils/iqr';
 import { eurRounded } from '../utils/format';
 import { getChartPalette, getLast30Dates } from '../utils/chartSetup';
 
-const BUDGET_LABEL = 'Budget-Based';
-const PATTERN_LABEL = 'Pattern-Based';
-const BUDGET_PREDICTED_LABEL = 'Budget-Based (predicted)';
-const PATTERN_PREDICTED_LABEL = 'Pattern-Based (predicted)';
+const BUDGET_COLOR = '#ef4444';
+const PATTERN_COLOR = '#8b5cf6';
+const BAND_FILL = 'rgba(148,163,184,0.16)';
 
-function buildNameArrays(budget: BudgetAnomaly[], pattern: PatternAnomaly[]) {
-  const bNames: string[][] = Array.from({ length: 30 }, () => []);
-  const pNames: string[][] = Array.from({ length: 30 }, () => []);
-  budget.forEach((a) => {
-    const i = 29 - a.ago;
-    if (i >= 0) bNames[i].push(a.svc);
+type DayType = 'budget' | 'pattern' | null;
+
+function classifyDays(spend: number[], budgetCost: number[], patternCost: number[], bounds: IQRBounds): DayType[] {
+  return spend.map((v, i) => {
+    if (!isIQROutlier(v, bounds)) return null;
+    return (budgetCost[i] ?? 0) >= (patternCost[i] ?? 0) ? 'budget' : 'pattern';
   });
-  pattern.forEach((a) => {
-    const i = 29 - a.ago;
-    if (i >= 0) pNames[i].push(a.svc);
-  });
-  return { bNames, pNames };
 }
 
 export function AnomalyTimelineChart({
-  budget,
-  pattern,
   theme,
   view,
   monthData,
 }: {
-  budget: BudgetAnomaly[];
-  pattern: PatternAnomaly[];
   theme: Theme;
   view: TimelineView;
   monthData: CurrentMonthTimeline | null;
 }) {
-  const { bNames, pNames } = useMemo(() => buildNameArrays(budget, pattern), [budget, pattern]);
   const palette = useMemo(() => getChartPalette(theme), [theme]);
 
-  const showBudget = view !== 'pattern';
-  const showPattern = view !== 'budget';
-  const useMonthData = monthData !== null;
-  const showForecast = useMonthData && monthData.isIncomplete;
+  const { labels, spend, budgetCost, patternCost, todayIndex, bounds } = useMemo(() => {
+    if (monthData) {
+      const elapsed = monthData.spend.slice(0, monthData.todayDate);
+      return {
+        labels: monthData.labels,
+        spend: monthData.spend,
+        budgetCost: monthData.budgetCost,
+        patternCost: monthData.patternCost,
+        todayIndex: monthData.todayDate - 1,
+        bounds: computeIQRBounds(elapsed),
+      };
+    }
+    return {
+      labels: getLast30Dates(),
+      spend: TIMELINE_DAILY_SPEND,
+      budgetCost: TIMELINE_BUDGET_COSTS,
+      patternCost: TIMELINE_PATTERN_COSTS,
+      todayIndex: TIMELINE_DAILY_SPEND.length - 1,
+      bounds: computeIQRBounds(TIMELINE_DAILY_SPEND),
+    };
+  }, [monthData]);
+
+  const showForecast = monthData !== null && monthData.isIncomplete;
+  const types = useMemo(() => classifyDays(spend, budgetCost, patternCost, bounds), [spend, budgetCost, patternCost, bounds]);
 
   const data = useMemo(() => {
-    if (useMonthData && monthData) {
-      const datasets = [];
-      if (showBudget) {
-        datasets.push({
-          label: BUDGET_LABEL,
-          data: monthData.budgetActual,
-          borderColor: '#ef4444',
-          backgroundColor: 'rgba(239,68,68,0.06)',
+    const n = spend.length;
+    const lowerBand = new Array(n).fill(Math.max(0, bounds.q1 - 1.5 * bounds.iqr));
+    const upperBand = new Array(n).fill(bounds.upperBound);
+
+    const allow = (t: DayType) => {
+      if (!t) return false;
+      if (view === 'budget') return t === 'budget';
+      if (view === 'pattern') return t === 'pattern';
+      return true;
+    };
+    const anomalyPoints = spend.map((v, i) => (allow(types[i]) ? v : null));
+    const pointColors = types.map((t) => (t === 'budget' ? BUDGET_COLOR : t === 'pattern' ? PATTERN_COLOR : 'transparent'));
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Lower bound',
+          data: lowerBand,
+          borderWidth: 0,
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: 'Normal range (IQR)',
+          data: upperBand,
+          borderWidth: 0,
+          pointRadius: 0,
+          backgroundColor: BAND_FILL,
+          fill: '-1' as const,
+        },
+        {
+          label: 'Daily spend',
+          data: spend,
+          borderColor: palette.textMuted,
+          backgroundColor: palette.textMuted,
           borderWidth: 1.5,
-          pointRadius: 1.5,
-          pointHoverRadius: 4,
-          fill: true,
-          tension: 0.4,
-          spanGaps: false,
-        });
-        if (showForecast) {
-          datasets.push({
-            label: BUDGET_PREDICTED_LABEL,
-            data: monthData.budgetPredicted,
-            borderColor: '#ef4444',
-            backgroundColor: 'transparent',
-            borderWidth: 1.5,
-            borderDash: [6, 4],
-            pointRadius: 1.5,
-            pointHoverRadius: 4,
-            fill: false,
-            tension: 0.4,
-            spanGaps: false,
-          });
-        }
-      }
-      if (showPattern) {
-        datasets.push({
-          label: PATTERN_LABEL,
-          data: monthData.patternActual,
-          borderColor: '#8b5cf6',
-          backgroundColor: 'rgba(139,92,246,0.06)',
-          borderWidth: 1.5,
-          pointRadius: 1.5,
-          pointHoverRadius: 4,
-          fill: true,
-          tension: 0.4,
-          spanGaps: false,
-        });
-        if (showForecast) datasets.push({
-          label: PATTERN_PREDICTED_LABEL,
-          data: monthData.patternPredicted,
-          borderColor: '#8b5cf6',
-          backgroundColor: 'transparent',
-          borderWidth: 1.5,
-          borderDash: [6, 4],
           pointRadius: 1.5,
           pointHoverRadius: 4,
           fill: false,
-          tension: 0.4,
+          tension: 0.3,
+          ...(showForecast
+            ? {
+                segment: {
+                  borderDash: (ctx: { p1DataIndex: number }) => (ctx.p1DataIndex > todayIndex ? [6, 4] : undefined),
+                },
+              }
+            : {}),
+        },
+        {
+          label: 'Anomaly',
+          data: anomalyPoints,
+          borderWidth: 0,
+          showLine: false,
+          pointRadius: 5,
+          pointHoverRadius: 6,
+          pointBackgroundColor: pointColors,
+          pointBorderColor: pointColors,
           spanGaps: false,
-        });
-      }
-      return { labels: monthData.labels, datasets };
-    }
-
-    const datasets = [];
-    if (showBudget) {
-      datasets.push({
-        label: BUDGET_LABEL,
-        data: TIMELINE_BUDGET_COUNTS,
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239,68,68,0.06)',
-        borderWidth: 1.5,
-        pointRadius: 1.5,
-        pointHoverRadius: 4,
-        fill: true,
-        tension: 0.4,
-      });
-    }
-    if (showPattern) {
-      datasets.push({
-        label: PATTERN_LABEL,
-        data: TIMELINE_PATTERN_COUNTS,
-        borderColor: '#8b5cf6',
-        backgroundColor: 'rgba(139,92,246,0.06)',
-        borderWidth: 1.5,
-        pointRadius: 1.5,
-        pointHoverRadius: 4,
-        fill: true,
-        tension: 0.4,
-      });
-    }
-    return { labels: getLast30Dates(), datasets };
-  }, [showBudget, showPattern, showForecast, useMonthData, monthData]);
+        },
+      ],
+    };
+  }, [spend, types, bounds, palette, labels, showForecast, todayIndex, view]);
 
   const options: ChartOptions<'line'> = useMemo(
     () => ({
@@ -162,36 +141,20 @@ export function AnomalyTimelineChart({
           padding: 12,
           cornerRadius: 6,
           boxPadding: 4,
-          filter: (item) => {
-            // The predicted line repeats the actual value on the "today" bridge
-            // point just so the dashed segment connects visually — don't show
-            // it a second time in the tooltip.
-            if (showForecast && monthData && item.dataset.label?.includes('(predicted)') && item.dataIndex === monthData.todayDate - 1) {
-              return false;
-            }
-            return (item.raw as number) > 0;
-          },
+          filter: (item) => item.dataset.label === 'Daily spend',
           callbacks: {
             title: (items) => items[0].label,
-            label: (item: TooltipItem<'line'>) => {
-              const count = item.raw as number;
-              const label = item.dataset.label ?? '';
-              const unit = count === 1 ? 'anomaly' : 'anomalies';
-
-              if (showForecast) {
-                const isPredicted = label.includes('(predicted)');
-                const baseLabel = label.replace(' (predicted)', '');
-                return isPredicted ? `${baseLabel}: ${count} ${unit} (forecast)` : `${baseLabel}: ${count} ${unit}`;
-              }
-
-              const isBudget = label === BUDGET_LABEL;
-              const cost = isBudget ? TIMELINE_BUDGET_COSTS[item.dataIndex] : TIMELINE_PATTERN_COSTS[item.dataIndex];
-              const names = isBudget ? bNames[item.dataIndex] : pNames[item.dataIndex];
-              const lines = [`${label}: ${count} ${unit}`];
-              if (cost > 0) {
-                const tag = isBudget ? 'overage' : 'spike cost';
-                lines.push(`  Cost impact: ${eurRounded(cost)} ${tag}`);
-                names.forEach((n) => lines.push(`  · ${n}`));
+            label: (item) => {
+              const i = item.dataIndex;
+              const value = spend[i];
+              const type = types[i];
+              const isForecastPoint = showForecast && i > todayIndex;
+              const lines = [`Daily spend: ${eurRounded(value)}${isForecastPoint ? ' (forecast)' : ''}`];
+              if (type) {
+                const cost = type === 'budget' ? budgetCost[i] : patternCost[i];
+                const tag = type === 'budget' ? 'Budget breach' : 'Pattern spike';
+                lines.push(`⚠ ${tag} — above IQR upper bound (${eurRounded(bounds.upperBound)})`);
+                if (cost > 0) lines.push(`  Cost impact: ${eurRounded(cost)}`);
               }
               return lines;
             },
@@ -206,13 +169,13 @@ export function AnomalyTimelineChart({
         },
         y: {
           grid: { color: palette.grid },
-          ticks: { color: palette.textMuted, font: { size: 9 }, stepSize: 1 },
+          ticks: { color: palette.textMuted, font: { size: 9 }, callback: (v) => `€${v}` },
           border: { display: false },
           min: 0,
         },
       },
     }),
-    [bNames, pNames, palette, showForecast, monthData],
+    [palette, spend, types, budgetCost, patternCost, bounds, showForecast, todayIndex],
   );
 
   return (

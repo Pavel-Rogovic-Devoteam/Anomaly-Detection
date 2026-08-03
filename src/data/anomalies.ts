@@ -24,13 +24,26 @@ export const INITIAL_PATTERN: PatternAnomaly[] = [
 
 export const SEV_RANK: Record<Severity, number> = { critical: 4, high: 3, medium: 2, low: 1 };
 
-/** Anomaly-count-per-day series for the 30-day timeline (index 29 = today, May 7 2026). */
-export const TIMELINE_BUDGET_COUNTS = [0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 2, 0, 1, 1, 0, 2, 1, 1, 2, 1, 2, 1, 2, 2];
-export const TIMELINE_PATTERN_COUNTS = [0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 2, 1, 1, 2, 1, 3];
-
-/** Cost impact parallel to the count series — Budget = total overage (€), Pattern = total spike-above-baseline (€/day). */
+/** Daily cost impact for the 30-day timeline (index 29 = today, May 7 2026) — Budget = total overage (€), Pattern = total spike-above-baseline (€/day). */
 export const TIMELINE_BUDGET_COSTS = [0, 0, 142, 0, 45, 0, 78, 405, 0, 142, 0, 45, 0, 731, 78, 0, 1246, 0, 142, 78, 0, 873, 405, 45, 1572, 405, 776, 78, 1246, 1572];
 export const TIMELINE_PATTERN_COSTS = [0, 13, 0, 24, 0, 66, 0, 0, 104, 0, 66, 0, 48, 0, 0, 67, 0, 104, 0, 153, 222, 0, 90, 90, 528, 153, 176, 479, 373, 1129];
+
+/** Deterministic seeded noise — same LCG technique as utils/sparkline.ts, so results stay stable across reloads. */
+function seededSeries(seed: number, length: number, base: number, spread: number): number[] {
+  let s = seed;
+  return Array.from({ length }, () => {
+    s = (s * 9301 + 49297) % 233280;
+    return base + (s / 233280 - 0.5) * spread;
+  });
+}
+
+const DAILY_SPEND_BASELINE = seededSeries(11, 30, 980, 260);
+
+/** Total daily spend across services — baseline noise plus that day's budget/pattern cost impact, so the days
+ *  already carrying an anomaly cost naturally show up as spend spikes. */
+export const TIMELINE_DAILY_SPEND: number[] = DAILY_SPEND_BASELINE.map((v, i) =>
+  Math.round(v + TIMELINE_BUDGET_COSTS[i] + TIMELINE_PATTERN_COSTS[i]),
+);
 
 const SERVICE_CATEGORY: Record<string, string> = {
   'EC2 Production Cluster': 'Compute',

@@ -315,6 +315,8 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 .legend-item  { display: flex; align-items: center; gap: 0.45rem; font-size: 0.91rem; color: var(--text-muted); }
 .legend-line  { width: 1.45rem; height: 2px; border-radius: 1px; flex-shrink: 0; }
 .legend-line.dashed { background: none; height: 0; border-top: 2px dashed; }
+.legend-swatch { width: 0.91rem; height: 0.73rem; border-radius: 0.18rem; flex-shrink: 0; background: rgba(148,163,184,0.35); }
+.legend-dot { width: 0.64rem; height: 0.64rem; border-radius: 50%; flex-shrink: 0; }
 
 /* ── Distribution card ── */
 .dist-card { display: flex; flex-direction: column; }

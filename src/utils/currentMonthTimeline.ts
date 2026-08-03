@@ -1,4 +1,4 @@
-import { TIMELINE_BUDGET_COUNTS, TIMELINE_PATTERN_COUNTS } from '../data/anomalies';
+import { TIMELINE_BUDGET_COSTS, TIMELINE_DAILY_SPEND, TIMELINE_PATTERN_COSTS } from '../data/anomalies';
 
 export interface CurrentMonthTimeline {
   labels: string[];
@@ -6,22 +6,14 @@ export interface CurrentMonthTimeline {
   todayDate: number;
   isIncomplete: boolean;
   monthLabel: string;
-  budgetActual: (number | null)[];
-  budgetPredicted: (number | null)[];
-  patternActual: (number | null)[];
-  patternPredicted: (number | null)[];
+  spend: number[];
+  budgetCost: number[];
+  patternCost: number[];
 }
 
-/** Naive-cyclical forecast: repeats the pattern observed so far this month, on a loop. */
-function forecastRemainingDays(actualSoFar: number[], elapsed: number, totalDays: number): (number | null)[] {
-  const predicted: (number | null)[] = new Array(totalDays).fill(null);
-  if (elapsed === 0) return predicted;
-
-  predicted[elapsed - 1] = actualSoFar[elapsed - 1];
-  for (let i = elapsed; i < totalDays; i++) {
-    predicted[i] = actualSoFar[i % elapsed];
-  }
-  return predicted;
+/** Extends an elapsed-so-far series to `totalDays` by cyclically repeating the observed pattern. */
+function extendCyclically(soFar: number[], elapsed: number, totalDays: number): number[] {
+  return Array.from({ length: totalDays }, (_, i) => (i < elapsed ? soFar[i] : soFar[i % elapsed]));
 }
 
 export function buildCurrentMonthTimeline(): CurrentMonthTimeline {
@@ -35,10 +27,9 @@ export function buildCurrentMonthTimeline(): CurrentMonthTimeline {
     new Date(year, monthIndex, i + 1).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
   );
 
-  const budgetActualSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_BUDGET_COUNTS[i % TIMELINE_BUDGET_COUNTS.length]);
-  const patternActualSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_PATTERN_COUNTS[i % TIMELINE_PATTERN_COUNTS.length]);
-
-  const padding: null[] = new Array(daysInMonth - todayDate).fill(null);
+  const spendSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_DAILY_SPEND[i % TIMELINE_DAILY_SPEND.length]);
+  const budgetCostSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_BUDGET_COSTS[i % TIMELINE_BUDGET_COSTS.length]);
+  const patternCostSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_PATTERN_COSTS[i % TIMELINE_PATTERN_COSTS.length]);
 
   return {
     labels,
@@ -46,9 +37,8 @@ export function buildCurrentMonthTimeline(): CurrentMonthTimeline {
     todayDate,
     isIncomplete: todayDate < daysInMonth,
     monthLabel: now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
-    budgetActual: [...budgetActualSoFar, ...padding],
-    budgetPredicted: forecastRemainingDays(budgetActualSoFar, todayDate, daysInMonth),
-    patternActual: [...patternActualSoFar, ...padding],
-    patternPredicted: forecastRemainingDays(patternActualSoFar, todayDate, daysInMonth),
+    spend: extendCyclically(spendSoFar, todayDate, daysInMonth),
+    budgetCost: extendCyclically(budgetCostSoFar, todayDate, daysInMonth),
+    patternCost: extendCyclically(patternCostSoFar, todayDate, daysInMonth),
   };
 }

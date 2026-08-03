@@ -125,9 +125,9 @@ function App() {
                   <div className="card-subtitle">
                     {monthData
                       ? monthData.isIncomplete
-                        ? `Daily count · ${monthData.monthLabel} · actual through the ${monthData.todayDate}${daySuffix(monthData.todayDate)}, forecast after`
-                        : `Daily count · ${monthData.monthLabel}`
-                      : 'Daily count · Apr 6 – May 7, 2026'}
+                        ? `Daily spend · ${monthData.monthLabel} · actual through the ${monthData.todayDate}${daySuffix(monthData.todayDate)}, forecast after`
+                        : `Daily spend · ${monthData.monthLabel}`
+                      : 'Daily spend · Apr 6 – May 7, 2026'}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
@@ -153,18 +153,26 @@ function App() {
                   </div>
                 </div>
               </div>
-              <AnomalyTimelineChart budget={budget} pattern={pattern} theme={theme} view={timelineView} monthData={monthData} />
+              <AnomalyTimelineChart theme={theme} view={timelineView} monthData={monthData} />
               <div className="chart-legend">
+                <div className="legend-item">
+                  <div className="legend-line" style={{ background: 'var(--text-muted)' }} />
+                  Daily spend
+                </div>
+                <div className="legend-item">
+                  <div className="legend-swatch" />
+                  Normal range (IQR)
+                </div>
                 {timelineView !== 'pattern' && (
                   <div className="legend-item">
-                    <div className="legend-line" style={{ background: '#ef4444' }} />
-                    Budget-Based
+                    <div className="legend-dot" style={{ background: '#ef4444' }} />
+                    Budget anomaly
                   </div>
                 )}
                 {timelineView !== 'budget' && (
                   <div className="legend-item">
-                    <div className="legend-line" style={{ background: '#8b5cf6' }} />
-                    Pattern-Based
+                    <div className="legend-dot" style={{ background: '#8b5cf6' }} />
+                    Pattern anomaly
                   </div>
                 )}
                 {monthData?.isIncomplete && (
