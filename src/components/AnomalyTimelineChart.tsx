@@ -8,11 +8,14 @@ import {
   TIMELINE_PATTERN_COSTS,
   TIMELINE_PATTERN_COUNTS,
 } from '../data/anomalies';
+import type { CurrentMonthTimeline } from '../utils/currentMonthTimeline';
 import { eurRounded } from '../utils/format';
 import { getChartPalette, getLast30Dates } from '../utils/chartSetup';
 
 const BUDGET_LABEL = 'Budget-Based';
 const PATTERN_LABEL = 'Pattern-Based';
+const BUDGET_PREDICTED_LABEL = 'Budget-Based (predicted)';
+const PATTERN_PREDICTED_LABEL = 'Pattern-Based (predicted)';
 
 function buildNameArrays(budget: BudgetAnomaly[], pattern: PatternAnomaly[]) {
   const bNames: string[][] = Array.from({ length: 30 }, () => []);
@@ -33,19 +36,84 @@ export function AnomalyTimelineChart({
   pattern,
   theme,
   view,
+  monthData,
 }: {
   budget: BudgetAnomaly[];
   pattern: PatternAnomaly[];
   theme: Theme;
   view: TimelineView;
+  monthData: CurrentMonthTimeline | null;
 }) {
   const { bNames, pNames } = useMemo(() => buildNameArrays(budget, pattern), [budget, pattern]);
   const palette = useMemo(() => getChartPalette(theme), [theme]);
 
   const showBudget = view !== 'pattern';
   const showPattern = view !== 'budget';
+  const useMonthData = monthData !== null;
+  const showForecast = useMonthData && monthData.isIncomplete;
 
   const data = useMemo(() => {
+    if (useMonthData && monthData) {
+      const datasets = [];
+      if (showBudget) {
+        datasets.push({
+          label: BUDGET_LABEL,
+          data: monthData.budgetActual,
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239,68,68,0.06)',
+          borderWidth: 1.5,
+          pointRadius: 1.5,
+          pointHoverRadius: 4,
+          fill: true,
+          tension: 0.4,
+          spanGaps: false,
+        });
+        if (showForecast) {
+          datasets.push({
+            label: BUDGET_PREDICTED_LABEL,
+            data: monthData.budgetPredicted,
+            borderColor: '#ef4444',
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            pointRadius: 1.5,
+            pointHoverRadius: 4,
+            fill: false,
+            tension: 0.4,
+            spanGaps: false,
+          });
+        }
+      }
+      if (showPattern) {
+        datasets.push({
+          label: PATTERN_LABEL,
+          data: monthData.patternActual,
+          borderColor: '#8b5cf6',
+          backgroundColor: 'rgba(139,92,246,0.06)',
+          borderWidth: 1.5,
+          pointRadius: 1.5,
+          pointHoverRadius: 4,
+          fill: true,
+          tension: 0.4,
+          spanGaps: false,
+        });
+        if (showForecast) datasets.push({
+          label: PATTERN_PREDICTED_LABEL,
+          data: monthData.patternPredicted,
+          borderColor: '#8b5cf6',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 1.5,
+          pointHoverRadius: 4,
+          fill: false,
+          tension: 0.4,
+          spanGaps: false,
+        });
+      }
+      return { labels: monthData.labels, datasets };
+    }
+
     const datasets = [];
     if (showBudget) {
       datasets.push({
@@ -74,7 +142,7 @@ export function AnomalyTimelineChart({
       });
     }
     return { labels: getLast30Dates(), datasets };
-  }, [showBudget, showPattern]);
+  }, [showBudget, showPattern, showForecast, useMonthData, monthData]);
 
   const options: ChartOptions<'line'> = useMemo(
     () => ({
@@ -94,16 +162,31 @@ export function AnomalyTimelineChart({
           padding: 12,
           cornerRadius: 6,
           boxPadding: 4,
-          filter: (item) => (item.raw as number) > 0,
+          filter: (item) => {
+            // The predicted line repeats the actual value on the "today" bridge
+            // point just so the dashed segment connects visually — don't show
+            // it a second time in the tooltip.
+            if (showForecast && monthData && item.dataset.label?.includes('(predicted)') && item.dataIndex === monthData.todayDate - 1) {
+              return false;
+            }
+            return (item.raw as number) > 0;
+          },
           callbacks: {
             title: (items) => items[0].label,
             label: (item: TooltipItem<'line'>) => {
               const count = item.raw as number;
-              const isBudget = item.dataset.label === BUDGET_LABEL;
+              const label = item.dataset.label ?? '';
+              const unit = count === 1 ? 'anomaly' : 'anomalies';
+
+              if (showForecast) {
+                const isPredicted = label.includes('(predicted)');
+                const baseLabel = label.replace(' (predicted)', '');
+                return isPredicted ? `${baseLabel}: ${count} ${unit} (forecast)` : `${baseLabel}: ${count} ${unit}`;
+              }
+
+              const isBudget = label === BUDGET_LABEL;
               const cost = isBudget ? TIMELINE_BUDGET_COSTS[item.dataIndex] : TIMELINE_PATTERN_COSTS[item.dataIndex];
               const names = isBudget ? bNames[item.dataIndex] : pNames[item.dataIndex];
-              const label = item.dataset.label;
-              const unit = count === 1 ? 'anomaly' : 'anomalies';
               const lines = [`${label}: ${count} ${unit}`];
               if (cost > 0) {
                 const tag = isBudget ? 'overage' : 'spike cost';
@@ -129,7 +212,7 @@ export function AnomalyTimelineChart({
         },
       },
     }),
-    [bNames, pNames, palette],
+    [bNames, pNames, palette, showForecast, monthData],
   );
 
   return (

@@ -22,3 +22,10 @@ export function alertPillClass(pct: number): 'danger' | 'warning' | 'ok' {
   if (pct >= 110) return 'warning';
   return 'ok';
 }
+
+export function daySuffix(day: number): string {
+  if (day % 10 === 1 && day % 100 !== 11) return 'st';
+  if (day % 10 === 2 && day % 100 !== 12) return 'nd';
+  if (day % 10 === 3 && day % 100 !== 13) return 'rd';
+  return 'th';
+}

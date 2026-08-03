@@ -5,9 +5,14 @@ import type { CustomRange } from '../utils/period';
 
 const OPTIONS: PeriodOption[] = ['current-month', 'last-month', 'last-3-months', 'last-6-months', 'custom'];
 
-export function PeriodSelector() {
+export function PeriodSelector({
+  period,
+  onChangePeriod,
+}: {
+  period: PeriodOption;
+  onChangePeriod: (period: PeriodOption) => void;
+}) {
   const [open, setOpen] = useState(false);
-  const [period, setPeriod] = useState<PeriodOption>('last-month');
   const [customRange, setCustomRange] = useState<CustomRange | null>(null);
   const [draftStart, setDraftStart] = useState('');
   const [draftEnd, setDraftEnd] = useState('');
@@ -30,7 +35,7 @@ export function PeriodSelector() {
   }, [open]);
 
   const selectOption = (opt: PeriodOption) => {
-    setPeriod(opt);
+    onChangePeriod(opt);
     if (opt !== 'custom') setOpen(false);
   };
 

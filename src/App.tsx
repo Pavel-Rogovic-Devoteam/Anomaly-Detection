@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import './utils/chartSetup';
-import type { DistView, NavSectionKey, ProviderFilter, SeverityFilter, TimelineView } from './types';
+import type { DistView, NavSectionKey, PeriodOption, ProviderFilter, SeverityFilter, TimelineView } from './types';
 import { INITIAL_BUDGET, INITIAL_PATTERN } from './data/anomalies';
 import { useSavedAnomalies } from './hooks/useSavedAnomalies';
 import { useTheme } from './hooks/useTheme';
+import { buildCurrentMonthTimeline } from './utils/currentMonthTimeline';
+import { daySuffix } from './utils/format';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { PageHeader } from './components/PageHeader';
@@ -30,6 +32,9 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('budget');
   const [distView, setDistView] = useState<DistView>('provider');
   const [timelineView, setTimelineView] = useState<TimelineView>('all');
+  const [period, setPeriod] = useState<PeriodOption>('last-month');
+
+  const monthData = useMemo(() => (period === 'current-month' ? buildCurrentMonthTimeline() : null), [period]);
 
   const [activeSev, setActiveSev] = useState<SeverityFilter>('all');
   const [activeProvider, setActiveProvider] = useState<ProviderFilter>('all');
@@ -93,7 +98,7 @@ function App() {
         />
 
         <main className="content">
-          <PageHeader />
+          <PageHeader period={period} onChangePeriod={setPeriod} />
 
           <StatsRow
             total={stats.total}
@@ -117,7 +122,13 @@ function App() {
               <div className="card-header">
                 <div>
                   <div className="card-title">Anomaly Timeline</div>
-                  <div className="card-subtitle">Daily count · Apr 6 – May 7, 2026</div>
+                  <div className="card-subtitle">
+                    {monthData
+                      ? monthData.isIncomplete
+                        ? `Daily count · ${monthData.monthLabel} · actual through the ${monthData.todayDate}${daySuffix(monthData.todayDate)}, forecast after`
+                        : `Daily count · ${monthData.monthLabel}`
+                      : 'Daily count · Apr 6 – May 7, 2026'}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
                   <div className="dist-toggle">
@@ -142,7 +153,7 @@ function App() {
                   </div>
                 </div>
               </div>
-              <AnomalyTimelineChart budget={budget} pattern={pattern} theme={theme} view={timelineView} />
+              <AnomalyTimelineChart budget={budget} pattern={pattern} theme={theme} view={timelineView} monthData={monthData} />
               <div className="chart-legend">
                 {timelineView !== 'pattern' && (
                   <div className="legend-item">
@@ -154,6 +165,12 @@ function App() {
                   <div className="legend-item">
                     <div className="legend-line" style={{ background: '#8b5cf6' }} />
                     Pattern-Based
+                  </div>
+                )}
+                {monthData?.isIncomplete && (
+                  <div className="legend-item">
+                    <div className="legend-line dashed" style={{ borderTopColor: 'var(--text-muted)' }} />
+                    Forecast
                   </div>
                 )}
               </div>

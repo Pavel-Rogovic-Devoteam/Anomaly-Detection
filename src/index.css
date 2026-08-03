@@ -314,6 +314,7 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 .chart-legend { display: flex; gap: 1.27rem; margin-top: 0.91rem; }
 .legend-item  { display: flex; align-items: center; gap: 0.45rem; font-size: 0.91rem; color: var(--text-muted); }
 .legend-line  { width: 1.45rem; height: 2px; border-radius: 1px; flex-shrink: 0; }
+.legend-line.dashed { background: none; height: 0; border-top: 2px dashed; }
 
 /* ── Distribution card ── */
 .dist-card { display: flex; flex-direction: column; }
