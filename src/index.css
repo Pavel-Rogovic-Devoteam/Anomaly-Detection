@@ -306,6 +306,16 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 .card-title    { font-size: 1.18rem; font-weight: 600; color: var(--text); }
 .card-subtitle { font-size: 1rem; color: var(--text-muted); margin-top: 0.18rem; }
 
+.timeline-stats { display: flex; gap: 2.18rem; margin-bottom: 1.27rem; flex-wrap: wrap; }
+.timeline-stat-label {
+  display: flex; align-items: center; gap: 0.45rem;
+  font-size: 0.91rem; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.36rem;
+}
+.timeline-stat-dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; flex-shrink: 0; }
+.timeline-stat-value { font-size: 1.45rem; font-weight: 700; color: var(--text); line-height: 1; }
+.timeline-stat-sub { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.27rem; }
+
 /* Explicit, non-grid-derived box so Chart.js's resize observer has a stable
    target — a canvas placed directly inside a CSS grid item can otherwise get
    stuck (circular size dependency between the grid track and its content). */

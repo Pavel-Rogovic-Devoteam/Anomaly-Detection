@@ -9,8 +9,15 @@ import { eurRounded } from '../utils/format';
 import { getChartPalette, getLast30Dates } from '../utils/chartSetup';
 
 const BUDGET_COLOR = '#ef4444';
+const BUDGET_FILL = 'rgba(239,68,68,0.16)';
 const PATTERN_COLOR = '#8b5cf6';
+const PATTERN_FILL = 'rgba(139,92,246,0.18)';
 const BAND_FILL = 'rgba(148,163,184,0.16)';
+
+interface SegmentCtx {
+  p0DataIndex: number;
+  p1DataIndex: number;
+}
 
 export function AnomalyTimelineChart({
   theme,
@@ -57,6 +64,25 @@ export function AnomalyTimelineChart({
   const showBudgetDots = view !== 'pattern';
   const showPatternDots = view !== 'budget';
 
+  const stats = useMemo(() => {
+    let hitCount = 0;
+    let maxRatio = 1;
+    spend.forEach((_, i) => {
+      const budgetHit = showBudgetDots && isBudgetOutlier[i];
+      const patternHit = showPatternDots && isPatternOutlier[i];
+      if (budgetHit || patternHit) hitCount++;
+      if (budgetHit) maxRatio = Math.max(maxRatio, budgetSpend[i] / budgetBounds.upperBound);
+      if (patternHit) maxRatio = Math.max(maxRatio, patternSpend[i] / patternBounds.upperBound);
+    });
+    return {
+      multiplier: maxRatio,
+      pctOfDays: spend.length ? Math.round((hitCount / spend.length) * 100) : 0,
+      peak: Math.max(...spend),
+    };
+  }, [spend, isBudgetOutlier, isPatternOutlier, showBudgetDots, showPatternDots, budgetSpend, budgetBounds, patternSpend, patternBounds]);
+
+  const accentColor = view === 'pattern' ? PATTERN_COLOR : BUDGET_COLOR;
+
   const data = useMemo(() => {
     const n = spend.length;
     const lowerBand = new Array(n).fill(Math.max(0, spendBounds.q1 - 1.5 * spendBounds.iqr));
@@ -64,6 +90,14 @@ export function AnomalyTimelineChart({
 
     const budgetPoints = spend.map((v, i) => (showBudgetDots && isBudgetOutlier[i] ? v : null));
     const patternPoints = spend.map((v, i) => (showPatternDots && isPatternOutlier[i] ? v : null));
+
+    /** Which type "wins" a line segment spanning two points — pattern takes priority since it's typically the rarer, sharper signal. */
+    const segmentType = (ctx: SegmentCtx): 'pattern' | 'budget' | null => {
+      const { p0DataIndex: i0, p1DataIndex: i1 } = ctx;
+      if (showPatternDots && (isPatternOutlier[i0] || isPatternOutlier[i1])) return 'pattern';
+      if (showBudgetDots && (isBudgetOutlier[i0] || isBudgetOutlier[i1])) return 'budget';
+      return null;
+    };
 
     return {
       labels,
@@ -87,27 +121,34 @@ export function AnomalyTimelineChart({
           label: 'Daily spend',
           data: spend,
           borderColor: palette.textMuted,
-          backgroundColor: palette.textMuted,
-          borderWidth: 1.5,
-          pointRadius: 1.5,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
           pointHoverRadius: 4,
-          fill: false,
-          tension: 0.3,
-          ...(showForecast
-            ? {
-                segment: {
-                  borderDash: (ctx: { p1DataIndex: number }) => (ctx.p1DataIndex > todayIndex ? [6, 4] : undefined),
-                },
-              }
-            : {}),
+          pointHoverBackgroundColor: palette.textMuted,
+          fill: 1,
+          tension: 0.4,
+          segment: {
+            borderColor: (ctx: SegmentCtx) => {
+              const t = segmentType(ctx);
+              return t === 'pattern' ? PATTERN_COLOR : t === 'budget' ? BUDGET_COLOR : palette.textMuted;
+            },
+            backgroundColor: (ctx: SegmentCtx) => {
+              const t = segmentType(ctx);
+              return t === 'pattern' ? PATTERN_FILL : t === 'budget' ? BUDGET_FILL : 'transparent';
+            },
+            ...(showForecast
+              ? { borderDash: (ctx: SegmentCtx) => (ctx.p1DataIndex > todayIndex ? [6, 4] : undefined) }
+              : {}),
+          },
         },
         {
           label: 'Pattern anomaly',
           data: patternPoints,
           borderWidth: 0,
           showLine: false,
-          pointRadius: 6,
-          pointHoverRadius: 7,
+          pointRadius: 4,
+          pointHoverRadius: 6,
           pointBackgroundColor: PATTERN_COLOR,
           pointBorderColor: PATTERN_COLOR,
           spanGaps: false,
@@ -117,7 +158,7 @@ export function AnomalyTimelineChart({
           data: budgetPoints,
           borderWidth: 0,
           showLine: false,
-          pointRadius: 5,
+          pointRadius: 4,
           pointHoverRadius: 6,
           pointBackgroundColor: BUDGET_COLOR,
           pointBorderColor: BUDGET_COLOR,
@@ -126,6 +167,28 @@ export function AnomalyTimelineChart({
       ],
     };
   }, [spend, isBudgetOutlier, isPatternOutlier, showBudgetDots, showPatternDots, spendBounds, palette, labels, showForecast, todayIndex]);
+
+  const crosshairPlugin = useMemo(
+    () => ({
+      id: 'timelineCrosshair',
+      afterDraw(chart: { tooltip?: { getActiveElements?: () => { element: { x: number } }[] }; chartArea: { top: number; bottom: number }; ctx: CanvasRenderingContext2D }) {
+        const active = chart.tooltip?.getActiveElements?.();
+        if (!active || !active.length) return;
+        const { x } = active[0].element;
+        const { top, bottom } = chart.chartArea;
+        const { ctx } = chart;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bottom);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = palette.border2;
+        ctx.stroke();
+        ctx.restore();
+      },
+    }),
+    [palette],
+  );
 
   const options: ChartOptions<'line'> = useMemo(
     () => ({
@@ -182,8 +245,36 @@ export function AnomalyTimelineChart({
   );
 
   return (
-    <div className="timeline-chart-wrapper">
-      <Line data={data} options={options} />
+    <div>
+      <div className="timeline-stats">
+        <div className="timeline-stat">
+          <div className="timeline-stat-label">
+            <span className="timeline-stat-dot" style={{ background: accentColor }} />
+            Above Normal
+          </div>
+          <div className="timeline-stat-value">{stats.multiplier.toFixed(1)}x</div>
+          <div className="timeline-stat-sub">{stats.pctOfDays}% of days in this window</div>
+        </div>
+        <div className="timeline-stat">
+          <div className="timeline-stat-label">
+            <span className="timeline-stat-dot" style={{ background: 'var(--text-muted)' }} />
+            Normal Range
+          </div>
+          <div className="timeline-stat-value">
+            {eurRounded(spendBounds.q1)}–{eurRounded(spendBounds.upperBound)}
+          </div>
+        </div>
+        <div className="timeline-stat">
+          <div className="timeline-stat-label">
+            <span className="timeline-stat-dot" style={{ background: palette.textMuted }} />
+            Peak Spend
+          </div>
+          <div className="timeline-stat-value">{eurRounded(stats.peak)}</div>
+        </div>
+      </div>
+      <div className="timeline-chart-wrapper">
+        <Line data={data} options={options} plugins={[crosshairPlugin]} />
+      </div>
     </div>
   );
 }
