@@ -292,6 +292,21 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(260px, 19vw, 400px);
   gap: 1.09rem; margin-bottom: 1.45rem;
+  align-items: start;
+}
+
+.anomaly-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.09rem;
+}
+.panel-card { padding: 1.45rem 1.64rem 1.27rem; }
+
+.anomaly-ribbon { display: flex; gap: 2px; margin: 0.91rem 0; }
+.anomaly-ribbon-cell {
+  flex: 1; height: 0.36rem; min-width: 2px;
+  border-radius: 2px; background: var(--surface-3);
+  transition: background-color 0.15s;
 }
 
 .card {
@@ -585,6 +600,7 @@ tr:hover td { background: rgba(108,106,255,0.05); }
 }
 @media (max-width: 900px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .anomaly-panels { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 768px) {
   .sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }

@@ -36,8 +36,6 @@ export type ProviderFilter = 'all' | Provider;
 
 export type DistView = 'provider' | 'service';
 
-export type TimelineView = 'all' | 'budget' | 'pattern';
-
 export type NavSectionKey = 'inventory' | 'economics' | 'compliance';
 
 export type Theme = 'light' | 'dark';

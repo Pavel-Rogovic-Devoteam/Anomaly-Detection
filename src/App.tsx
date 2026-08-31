@@ -1,16 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
 import './utils/chartSetup';
-import type { DistView, NavSectionKey, PeriodOption, ProviderFilter, SeverityFilter, TimelineView } from './types';
+import type { DistView, NavSectionKey, PeriodOption, ProviderFilter, SeverityFilter } from './types';
 import { INITIAL_BUDGET, INITIAL_PATTERN } from './data/anomalies';
 import { useSavedAnomalies } from './hooks/useSavedAnomalies';
 import { useTheme } from './hooks/useTheme';
 import { buildCurrentMonthTimeline } from './utils/currentMonthTimeline';
-import { daySuffix } from './utils/format';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { PageHeader } from './components/PageHeader';
 import { StatsRow } from './components/StatsRow';
-import { AnomalyTimelineChart } from './components/AnomalyTimelineChart';
+import { SpendAnomalyPanel } from './components/SpendAnomalyPanel';
 import { DistributionCard } from './components/DistributionCard';
 import { TableControls } from './components/TableControls';
 import { BudgetTable } from './components/BudgetTable';
@@ -31,7 +30,6 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<Tab>('budget');
   const [distView, setDistView] = useState<DistView>('provider');
-  const [timelineView, setTimelineView] = useState<TimelineView>('all');
   const [period, setPeriod] = useState<PeriodOption>('last-month');
 
   const monthData = useMemo(() => (period === 'current-month' ? buildCurrentMonthTimeline() : null), [period]);
@@ -118,70 +116,9 @@ function App() {
           />
 
           <div className="charts-row">
-            <div className="card" style={{ padding: '1.45rem 1.64rem 1.09rem' }}>
-              <div className="card-header">
-                <div>
-                  <div className="card-title">Anomaly Timeline</div>
-                  <div className="card-subtitle">
-                    {monthData
-                      ? monthData.isIncomplete
-                        ? `Daily spend · ${monthData.monthLabel} · actual through the ${monthData.todayDate}${daySuffix(monthData.todayDate)}, forecast after`
-                        : `Daily spend · ${monthData.monthLabel}`
-                      : 'Daily spend · Apr 6 – May 7, 2026'}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                  <div className="dist-toggle">
-                    <button
-                      className={`dist-toggle-btn${timelineView === 'all' ? ' active' : ''}`}
-                      onClick={() => setTimelineView('all')}
-                    >
-                      All anomalies
-                    </button>
-                    <button
-                      className={`dist-toggle-btn${timelineView === 'budget' ? ' active' : ''}`}
-                      onClick={() => setTimelineView('budget')}
-                    >
-                      Budget
-                    </button>
-                    <button
-                      className={`dist-toggle-btn${timelineView === 'pattern' ? ' active' : ''}`}
-                      onClick={() => setTimelineView('pattern')}
-                    >
-                      Pattern-based
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <AnomalyTimelineChart theme={theme} view={timelineView} monthData={monthData} />
-              <div className="chart-legend">
-                <div className="legend-item">
-                  <div className="legend-line" style={{ background: 'var(--text-muted)' }} />
-                  Daily spend
-                </div>
-                <div className="legend-item">
-                  <div className="legend-swatch" />
-                  Normal range (IQR)
-                </div>
-                {timelineView !== 'pattern' && (
-                  <div className="legend-item">
-                    <div className="legend-dot" style={{ background: '#ef4444' }} />
-                    Budget anomaly
-                  </div>
-                )}
-                {timelineView !== 'budget' && (
-                  <div className="legend-item">
-                    <div className="legend-dot" style={{ background: '#8b5cf6' }} />
-                    Pattern anomaly
-                  </div>
-                )}
-                {monthData?.isIncomplete && (
-                  <div className="legend-item">
-                    <div className="legend-line dashed" style={{ borderTopColor: 'var(--text-muted)' }} />
-                    Forecast
-                  </div>
-                )}
-              </div>
+            <div className="anomaly-panels">
+              <SpendAnomalyPanel type="budget" theme={theme} monthData={monthData} />
+              <SpendAnomalyPanel type="pattern" theme={theme} monthData={monthData} />
             </div>
 
             <DistributionCard budget={budget} pattern={pattern} view={distView} onChangeView={setDistView} theme={theme} />
