@@ -223,7 +223,7 @@ export function SpendAnomalyPanel({
       </div>
 
       <div className="timeline-stats">
-        <div className="timeline-stat">
+        <div className="timeline-stat timeline-stat--above">
           <div className="timeline-stat-label">
             <span className="timeline-stat-dot" style={{ background: cfg.color }} />
             Above Normal
@@ -232,7 +232,7 @@ export function SpendAnomalyPanel({
           <div className="timeline-stat-sub">{stats.abovePct}% of days</div>
         </div>
         {showLowSide && (
-          <div className="timeline-stat">
+          <div className="timeline-stat timeline-stat--below">
             <div className="timeline-stat-label">
               <span className="timeline-stat-dot" style={{ background: LOW_CONFIG.color }} />
               Below Normal
@@ -241,7 +241,7 @@ export function SpendAnomalyPanel({
             <div className="timeline-stat-sub">{stats.belowPct}% of days</div>
           </div>
         )}
-        <div className="timeline-stat">
+        <div className="timeline-stat timeline-stat--range">
           <div className="timeline-stat-label">
             <span className="timeline-stat-dot" style={{ background: 'var(--text-muted)' }} />
             Normal Range
@@ -250,7 +250,7 @@ export function SpendAnomalyPanel({
             {eurRounded(bounds.q1)}–{eurRounded(bounds.upperBound)}
           </div>
         </div>
-        <div className="timeline-stat">
+        <div className="timeline-stat timeline-stat--peak">
           <div className="timeline-stat-label">
             <span className="timeline-stat-dot" style={{ background: palette.textMuted }} />
             Peak

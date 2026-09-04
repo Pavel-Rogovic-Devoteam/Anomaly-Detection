@@ -321,7 +321,14 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 .card-title    { font-size: 1.18rem; font-weight: 600; color: var(--text); }
 .card-subtitle { font-size: 1rem; color: var(--text-muted); margin-top: 0.18rem; }
 
-.timeline-stats { display: flex; gap: 2.18rem; margin-bottom: 1.27rem; flex-wrap: wrap; }
+/* Fixed 4-slot grid (above / below / range / peak) so a panel missing the
+   "below normal" slot (Budget) still lines up with one that has it (Pattern)
+   instead of its later stats sliding left and its row height differing. */
+.timeline-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.09rem; margin-bottom: 1.27rem; }
+.timeline-stat--above { grid-column: 1; }
+.timeline-stat--below { grid-column: 2; }
+.timeline-stat--range { grid-column: 3; }
+.timeline-stat--peak  { grid-column: 4; }
 .timeline-stat-label {
   display: flex; align-items: center; gap: 0.45rem;
   font-size: 0.91rem; font-weight: 600; color: var(--text-muted);
