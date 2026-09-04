@@ -28,6 +28,10 @@ export const SEV_RANK: Record<Severity, number> = { critical: 4, high: 3, medium
 export const TIMELINE_BUDGET_COSTS = [0, 0, 142, 0, 45, 0, 78, 405, 0, 142, 0, 45, 0, 731, 78, 0, 1246, 0, 142, 78, 0, 873, 405, 45, 1572, 405, 776, 78, 1246, 1572];
 export const TIMELINE_PATTERN_COSTS = [0, 13, 0, 24, 0, 66, 0, 0, 104, 0, 66, 0, 48, 0, 0, 67, 0, 104, 0, 153, 222, 0, 90, 90, 528, 153, 176, 479, 373, 1129];
 
+/** Days where pattern spend dropped well below its usual baseline (€/day, negative) — e.g. a workload
+ *  paused or scaled down. Budget-based anomalies only ever mean overspend, so this only applies to Pattern. */
+export const TIMELINE_PATTERN_DIPS = [0, 0, 0, 0, 0, 0, 0, -225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
 /** Deterministic seeded noise — same LCG technique as utils/sparkline.ts, so results stay stable across reloads. */
 function seededSeries(seed: number, length: number, base: number, spread: number): number[] {
   let s = seed;
@@ -46,7 +50,7 @@ const BUDGET_SPEND_BASELINE = seededSeries(11, 30, 620, 170);
 const PATTERN_SPEND_BASELINE = seededSeries(23, 30, 340, 110);
 
 export const TIMELINE_BUDGET_SPEND: number[] = BUDGET_SPEND_BASELINE.map((v, i) => Math.round(v + TIMELINE_BUDGET_COSTS[i]));
-export const TIMELINE_PATTERN_SPEND: number[] = PATTERN_SPEND_BASELINE.map((v, i) => Math.round(v + TIMELINE_PATTERN_COSTS[i]));
+export const TIMELINE_PATTERN_SPEND: number[] = PATTERN_SPEND_BASELINE.map((v, i) => Math.round(v + TIMELINE_PATTERN_COSTS[i] + TIMELINE_PATTERN_DIPS[i]));
 
 /** Total daily spend across services, for the chart's single grayscale trend line. */
 export const TIMELINE_DAILY_SPEND: number[] = TIMELINE_BUDGET_SPEND.map((v, i) => v + TIMELINE_PATTERN_SPEND[i]);

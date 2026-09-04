@@ -3,6 +3,7 @@ export interface IQRBounds {
   q3: number;
   iqr: number;
   upperBound: number;
+  lowerBound: number;
 }
 
 /** Linear-interpolation quantile (same convention as numpy's default). `sorted` must be ascending. */
@@ -23,9 +24,16 @@ export function computeIQRBounds(values: number[]): IQRBounds {
   const q1 = quantile(sorted, 0.25);
   const q3 = quantile(sorted, 0.75);
   const iqr = q3 - q1;
-  return { q1, q3, iqr, upperBound: q3 + 1.5 * iqr };
+  return { q1, q3, iqr, upperBound: q3 + 1.5 * iqr, lowerBound: q1 - 1.5 * iqr };
 }
 
 export function isIQROutlier(value: number, bounds: IQRBounds): boolean {
   return value > bounds.upperBound;
+}
+
+/** Which side of the IQR band `value` breaches, if any. */
+export function getOutlierDirection(value: number, bounds: IQRBounds): 'high' | 'low' | null {
+  if (value > bounds.upperBound) return 'high';
+  if (value < bounds.lowerBound) return 'low';
+  return null;
 }

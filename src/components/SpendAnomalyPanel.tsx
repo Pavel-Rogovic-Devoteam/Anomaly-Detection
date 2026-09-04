@@ -4,7 +4,7 @@ import type { ChartOptions } from 'chart.js';
 import type { Theme } from '../types';
 import { TIMELINE_BUDGET_SPEND, TIMELINE_PATTERN_SPEND } from '../data/anomalies';
 import type { CurrentMonthTimeline } from '../utils/currentMonthTimeline';
-import { computeIQRBounds, isIQROutlier } from '../utils/iqr';
+import { computeIQRBounds, getOutlierDirection } from '../utils/iqr';
 import { daySuffix, eurRounded } from '../utils/format';
 import { getChartPalette, getLast30Dates } from '../utils/chartSetup';
 
@@ -16,6 +16,8 @@ const CONFIG: Record<AnomalyType, { label: string; color: string; fill: string }
 };
 
 const BAND_FILL = 'rgba(148,163,184,0.16)';
+
+const LOW_CONFIG = { label: 'Below Normal', color: '#3b82f6', fill: 'rgba(59,130,246,0.16)' };
 
 interface SegmentCtx {
   p0DataIndex: number;
@@ -61,27 +63,43 @@ export function SpendAnomalyPanel({
   }, [monthData, type]);
 
   const showForecast = monthData !== null && monthData.isIncomplete;
-  const isOutlier = useMemo(() => spend.map((v) => isIQROutlier(v, bounds)), [spend, bounds]);
+  const showLowSide = type === 'pattern';
+
+  const direction = useMemo(
+    () =>
+      spend.map((v) => {
+        const dir = getOutlierDirection(v, bounds);
+        return !showLowSide && dir === 'low' ? null : dir;
+      }),
+    [spend, bounds, showLowSide],
+  );
 
   const stats = useMemo(() => {
-    let hitCount = 0;
+    let aboveCount = 0;
+    let belowCount = 0;
     let maxRatio = 1;
+    let minRatio = 1;
     spend.forEach((v, i) => {
-      if (isOutlier[i]) {
-        hitCount++;
+      if (direction[i] === 'high') {
+        aboveCount++;
         maxRatio = Math.max(maxRatio, v / bounds.upperBound);
+      } else if (direction[i] === 'low') {
+        belowCount++;
+        if (bounds.lowerBound > 0) minRatio = Math.min(minRatio, v / bounds.lowerBound);
       }
     });
     return {
-      multiplier: maxRatio,
-      pctOfDays: spend.length ? Math.round((hitCount / spend.length) * 100) : 0,
+      aboveMultiplier: maxRatio,
+      abovePct: spend.length ? Math.round((aboveCount / spend.length) * 100) : 0,
+      belowMultiplier: minRatio,
+      belowPct: spend.length ? Math.round((belowCount / spend.length) * 100) : 0,
       peak: Math.max(...spend),
     };
-  }, [spend, isOutlier, bounds]);
+  }, [spend, direction, bounds]);
 
   const data = useMemo(() => {
     const n = spend.length;
-    const lowerBand = new Array(n).fill(Math.max(0, bounds.q1 - 1.5 * bounds.iqr));
+    const lowerBand = new Array(n).fill(Math.max(0, bounds.lowerBound));
     const upperBand = new Array(n).fill(bounds.upperBound);
 
     return {
@@ -101,8 +119,14 @@ export function SpendAnomalyPanel({
           fill: 1,
           tension: 0.4,
           segment: {
-            borderColor: (ctx: SegmentCtx) => (isOutlier[ctx.p0DataIndex] || isOutlier[ctx.p1DataIndex] ? cfg.color : palette.textMuted),
-            backgroundColor: (ctx: SegmentCtx) => (isOutlier[ctx.p0DataIndex] || isOutlier[ctx.p1DataIndex] ? cfg.fill : 'transparent'),
+            borderColor: (ctx: SegmentCtx) => {
+              const dir = direction[ctx.p0DataIndex] ?? direction[ctx.p1DataIndex];
+              return dir === 'high' ? cfg.color : dir === 'low' ? LOW_CONFIG.color : palette.textMuted;
+            },
+            backgroundColor: (ctx: SegmentCtx) => {
+              const dir = direction[ctx.p0DataIndex] ?? direction[ctx.p1DataIndex];
+              return dir === 'high' ? cfg.fill : dir === 'low' ? LOW_CONFIG.fill : 'transparent';
+            },
             ...(showForecast
               ? { borderDash: (ctx: SegmentCtx) => (ctx.p1DataIndex > todayIndex ? [6, 4] : undefined) }
               : {}),
@@ -110,7 +134,7 @@ export function SpendAnomalyPanel({
         },
       ],
     };
-  }, [spend, isOutlier, bounds, palette, labels, showForecast, todayIndex, cfg]);
+  }, [spend, direction, bounds, palette, labels, showForecast, todayIndex, cfg]);
 
   const crosshairPlugin = useMemo(
     () => ({
@@ -159,7 +183,8 @@ export function SpendAnomalyPanel({
               const i = item.dataIndex;
               const isForecastPoint = showForecast && i > todayIndex;
               const lines = [`${cfg.label} spend: ${eurRounded(spend[i])}${isForecastPoint ? ' (forecast)' : ''}`];
-              if (isOutlier[i]) lines.push(`⚠ Above IQR upper bound (${eurRounded(bounds.upperBound)})`);
+              if (direction[i] === 'high') lines.push(`⚠ Above IQR upper bound (${eurRounded(bounds.upperBound)})`);
+              if (direction[i] === 'low') lines.push(`⚠ Below IQR lower bound (${eurRounded(bounds.lowerBound)})`);
               return lines;
             },
           },
@@ -179,7 +204,7 @@ export function SpendAnomalyPanel({
         },
       },
     }),
-    [palette, spend, isOutlier, bounds, showForecast, todayIndex, cfg],
+    [palette, spend, direction, bounds, showForecast, todayIndex, cfg],
   );
 
   return (
@@ -203,9 +228,19 @@ export function SpendAnomalyPanel({
             <span className="timeline-stat-dot" style={{ background: cfg.color }} />
             Above Normal
           </div>
-          <div className="timeline-stat-value">{stats.multiplier.toFixed(1)}x</div>
-          <div className="timeline-stat-sub">{stats.pctOfDays}% of days</div>
+          <div className="timeline-stat-value">{stats.aboveMultiplier.toFixed(1)}x</div>
+          <div className="timeline-stat-sub">{stats.abovePct}% of days</div>
         </div>
+        {showLowSide && (
+          <div className="timeline-stat">
+            <div className="timeline-stat-label">
+              <span className="timeline-stat-dot" style={{ background: LOW_CONFIG.color }} />
+              Below Normal
+            </div>
+            <div className="timeline-stat-value">{stats.belowMultiplier.toFixed(1)}x</div>
+            <div className="timeline-stat-sub">{stats.belowPct}% of days</div>
+          </div>
+        )}
         <div className="timeline-stat">
           <div className="timeline-stat-label">
             <span className="timeline-stat-dot" style={{ background: 'var(--text-muted)' }} />
@@ -229,14 +264,18 @@ export function SpendAnomalyPanel({
       </div>
 
       <div className="anomaly-ribbon">
-        {spend.map((v, i) => (
-          <div
-            key={i}
-            className="anomaly-ribbon-cell"
-            style={isOutlier[i] ? { background: cfg.color } : undefined}
-            title={`${labels[i]}: ${eurRounded(v)}${isOutlier[i] ? ' — anomaly' : ''}`}
-          />
-        ))}
+        {spend.map((v, i) => {
+          const dir = direction[i];
+          const cellColor = dir === 'high' ? cfg.color : dir === 'low' ? LOW_CONFIG.color : undefined;
+          return (
+            <div
+              key={i}
+              className="anomaly-ribbon-cell"
+              style={cellColor ? { background: cellColor } : undefined}
+              title={`${labels[i]}: ${eurRounded(v)}${dir ? ' — anomaly' : ''}`}
+            />
+          );
+        })}
       </div>
 
       <div className="chart-legend">
@@ -250,8 +289,14 @@ export function SpendAnomalyPanel({
         </div>
         <div className="legend-item">
           <div className="legend-dot" style={{ background: cfg.color }} />
-          Anomaly
+          Above Normal
         </div>
+        {showLowSide && (
+          <div className="legend-item">
+            <div className="legend-dot" style={{ background: LOW_CONFIG.color }} />
+            Below Normal
+          </div>
+        )}
         {showForecast && (
           <div className="legend-item">
             <div className="legend-line dashed" style={{ borderTopColor: 'var(--text-muted)' }} />
