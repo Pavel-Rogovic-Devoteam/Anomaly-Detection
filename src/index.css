@@ -396,6 +396,43 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
   color: var(--accent-2);
 }
 
+/* ── Methodology card ── */
+.methodology-card { margin-bottom: 1.45rem; }
+.methodology-header { cursor: pointer; margin-bottom: 0; }
+.methodology-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 2rem; height: 2rem; flex-shrink: 0;
+  background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+}
+.methodology-toggle:hover { color: var(--text); }
+.methodology-body { margin-top: 1.27rem; }
+.methodology-intro { color: var(--text-dim); font-size: 1rem; line-height: 1.6; margin-bottom: 1.45rem; max-width: 62rem; }
+.methodology-intro strong { color: var(--text); }
+.methodology-section-label {
+  font-size: 0.91rem; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.73rem;
+}
+.methodology-metrics {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.91rem; margin-bottom: 1.45rem;
+}
+.metric-item {
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  border-radius: 0.55rem; padding: 0.91rem 1rem;
+}
+.metric-item-label { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.36rem; }
+.metric-item-desc { font-size: 0.91rem; color: var(--text-muted); line-height: 1.5; }
+.methodology-formulas {
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  border-radius: 0.55rem; padding: 1rem 1.27rem; margin-bottom: 1.27rem;
+}
+.formula-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.91rem; color: var(--text-dim); line-height: 1.8;
+}
+.formula-divider { height: 1px; background: var(--border); margin: 0.55rem 0; }
+.methodology-note { color: var(--text-muted); font-size: 0.91rem; line-height: 1.6; max-width: 62rem; }
+
 /* ── Anomaly card ── */
 .anomaly-card { padding: 0; }
 

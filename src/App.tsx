@@ -10,6 +10,7 @@ import { Topbar } from './components/Topbar';
 import { PageHeader } from './components/PageHeader';
 import { StatsRow } from './components/StatsRow';
 import { SpendAnomalyPanel } from './components/SpendAnomalyPanel';
+import { PatternMethodologyCard } from './components/PatternMethodologyCard';
 import { DistributionCard } from './components/DistributionCard';
 import { TableControls } from './components/TableControls';
 import { BudgetTable } from './components/BudgetTable';
@@ -149,6 +150,8 @@ function App() {
               />
             </div>
           )}
+
+          {activeTab === 'pattern' && <PatternMethodologyCard />}
 
           <div className="card anomaly-card">
             <TableControls
