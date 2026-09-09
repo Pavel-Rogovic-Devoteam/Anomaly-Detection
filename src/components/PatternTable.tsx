@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { PatternAnomaly, Severity } from '../types';
 import { SEV_RANK } from '../data/anomalies';
 import { eur } from '../utils/format';
-import { computeIQRBounds, isIQROutlier } from '../utils/iqr';
+import { computeIQRBoundsExcluding, getOutlierDirection } from '../utils/iqr';
 import type { Column } from '../utils/sort';
 import { sortRows } from '../utils/sort';
 import { sparkData } from '../utils/sparkline';
@@ -48,8 +48,9 @@ function PatternRow({
     () => sparkData(anomaly.base, spikeMult, anomaly.ago, anomaly.seed),
     [anomaly.base, spikeMult, anomaly.ago, anomaly.seed],
   );
-  const bounds = useMemo(() => computeIQRBounds(series), [series]);
-  const isOutlier = isIQROutlier(series[spikeIdx], bounds);
+  // Leave-one-out: bounds exclude the spike day itself, so it can't inflate the range it's tested against.
+  const bounds = useMemo(() => computeIQRBoundsExcluding(series, spikeIdx), [series, spikeIdx]);
+  const isOutlier = getOutlierDirection(series[spikeIdx], bounds) === 'high';
 
   return (
     <tr>

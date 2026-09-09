@@ -4,7 +4,10 @@ const METRICS = [
   { label: '30-Day Baseline', desc: "A service's typical daily spend (€/day) over its trailing 30-day window." },
   { label: 'Spike Cost', desc: 'The actual daily spend (€/day) observed on the day being evaluated.' },
   { label: 'Deviation %', desc: 'How far the spike sits above baseline, as a percentage.' },
-  { label: 'Daily Spend Series', desc: "The full 30 daily values that feed the statistical bounds below." },
+  {
+    label: 'Daily Spend Series',
+    desc: 'The full 30 daily values that feed the statistical bounds below — each day tested against bounds computed from the other 29.',
+  },
 ];
 
 export function PatternMethodologyCard() {
@@ -39,7 +42,9 @@ export function PatternMethodologyCard() {
             fixed budget, but a statistical deviation from its 30-day pattern. Detection runs independently per
             service, using the <strong>Interquartile Range (IQR)</strong> method rather than a mean/standard-deviation
             z-score, since IQR stays reliable on skewed, spike-prone cost data where the outliers themselves would
-            otherwise distort the average.
+            otherwise distort the average. The bounds are also computed <strong>leave-one-out</strong> — excluding
+            the very day being evaluated — so one big spike can&apos;t inflate the range it&apos;s about to be judged
+            against.
           </p>
 
           <div className="methodology-section-label">Metrics used</div>
@@ -56,7 +61,7 @@ export function PatternMethodologyCard() {
           <div className="methodology-formulas">
             <div className="formula-line">Deviation % = (Spike − Baseline) / Baseline × 100</div>
             <div className="formula-divider" />
-            <div className="formula-line">Q1, Q3 = 25th / 75th percentile of the 30-day series</div>
+            <div className="formula-line">Q1, Q3 = 25th / 75th percentile of the series, leaving out the day being tested</div>
             <div className="formula-line">IQR = Q3 − Q1</div>
             <div className="formula-line">Upper Bound = Q3 + 1.5 × IQR</div>
             <div className="formula-line">Lower Bound = Q1 − 1.5 × IQR</div>
@@ -65,9 +70,11 @@ export function PatternMethodologyCard() {
           </div>
 
           <p className="methodology-note">
-            The IQR outlier badge and sparkline in the table below, and the shaded band in the Pattern Spend chart
-            above, are both driven by these same bounds — recomputed independently per service for the table, and
-            once for the full Pattern-spend channel for the chart.
+            In the table below, the IQR outlier badge, sparkline dashed line, and Q1/Q3 tooltip all come from that
+            row&apos;s leave-one-out bounds. In the Pattern Spend chart above, the shaded band shows the full-period
+            range for reference, while each day is still flagged using its own leave-one-out bounds — so a day can
+            occasionally sit just inside the drawn band and still be marked anomalous (or vice versa), since removing
+            it from its own sample shifts the effective threshold slightly.
           </p>
         </div>
       )}

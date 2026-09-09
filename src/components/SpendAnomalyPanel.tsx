@@ -4,7 +4,7 @@ import type { ChartOptions } from 'chart.js';
 import type { Theme } from '../types';
 import { TIMELINE_BUDGET_SPEND, TIMELINE_PATTERN_SPEND } from '../data/anomalies';
 import type { CurrentMonthTimeline } from '../utils/currentMonthTimeline';
-import { computeIQRBounds, getOutlierDirection } from '../utils/iqr';
+import { computeIQRBounds, getOutlierDirection, getOutlierDirectionAt } from '../utils/iqr';
 import { daySuffix, eurRounded } from '../utils/format';
 import { getChartPalette, getLast30Dates } from '../utils/chartSetup';
 
@@ -65,14 +65,16 @@ export function SpendAnomalyPanel({
   const showForecast = monthData !== null && monthData.isIncomplete;
   const showLowSide = type === 'pattern';
 
-  const direction = useMemo(
-    () =>
-      spend.map((v) => {
-        const dir = getOutlierDirection(v, bounds);
-        return !showLowSide && dir === 'low' ? null : dir;
-      }),
-    [spend, bounds, showLowSide],
-  );
+  // Real (non-forecast) days are tested leave-one-out, excluding themselves from the sample
+  // that determines their own bounds — otherwise a big spike inflates the range it's judged
+  // against. Forecast days aren't part of that sample, so they're just checked against it.
+  const direction = useMemo(() => {
+    const sample = spend.slice(0, todayIndex + 1);
+    return spend.map((v, i) => {
+      const dir = i <= todayIndex ? getOutlierDirectionAt(sample, i) : getOutlierDirection(v, bounds);
+      return !showLowSide && dir === 'low' ? null : dir;
+    });
+  }, [spend, bounds, showLowSide, todayIndex]);
 
   const stats = useMemo(() => {
     let aboveCount = 0;

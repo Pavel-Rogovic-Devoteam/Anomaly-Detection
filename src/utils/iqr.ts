@@ -27,13 +27,24 @@ export function computeIQRBounds(values: number[]): IQRBounds {
   return { q1, q3, iqr, upperBound: q3 + 1.5 * iqr, lowerBound: q1 - 1.5 * iqr };
 }
 
-export function isIQROutlier(value: number, bounds: IQRBounds): boolean {
-  return value > bounds.upperBound;
-}
-
 /** Which side of the IQR band `value` breaches, if any. */
 export function getOutlierDirection(value: number, bounds: IQRBounds): 'high' | 'low' | null {
   if (value > bounds.upperBound) return 'high';
   if (value < bounds.lowerBound) return 'low';
   return null;
+}
+
+/**
+ * Bounds computed from `values` with the point at `excludeIndex` left out, so a single large
+ * spike (or dip) can't inflate/skew the very quartiles it's about to be tested against —
+ * otherwise a big enough spike raises Q3 (and IQR) enough to mask itself as "within range".
+ */
+export function computeIQRBoundsExcluding(values: number[], excludeIndex: number): IQRBounds {
+  return computeIQRBounds(values.filter((_, i) => i !== excludeIndex));
+}
+
+/** Outlier direction for `values[index]`, tested leave-one-out against bounds computed from
+ * every OTHER point in `values` rather than bounds it contributed to itself. */
+export function getOutlierDirectionAt(values: number[], index: number): 'high' | 'low' | null {
+  return getOutlierDirection(values[index], computeIQRBoundsExcluding(values, index));
 }
