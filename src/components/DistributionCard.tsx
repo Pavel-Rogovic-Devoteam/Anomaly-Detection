@@ -40,12 +40,14 @@ export function DistributionCard({
   view,
   onChangeView,
   theme,
+  subtitle = 'Anomaly distribution',
 }: {
   budget: BudgetAnomaly[];
   pattern: PatternAnomaly[];
   view: DistView;
   onChangeView: (view: DistView) => void;
   theme: Theme;
+  subtitle?: string;
 }) {
   const all = useMemo(() => [...budget, ...pattern], [budget, pattern]);
   const rows = useMemo(() => (view === 'provider' ? providerRows(all) : serviceRows(all)), [view, all]);
@@ -86,7 +88,7 @@ export function DistributionCard({
       <div className="card-header">
         <div>
           <div className="card-title">{view === 'provider' ? 'By Provider' : 'By Service'}</div>
-          <div className="card-subtitle">Anomaly distribution</div>
+          <div className="card-subtitle">{subtitle}</div>
         </div>
         <div className="dist-toggle">
           <button className={`dist-toggle-btn${view === 'provider' ? ' active' : ''}`} onClick={() => onChangeView('provider')}>

@@ -115,25 +115,42 @@ function App() {
             onSelectPattern={() => setActiveTab('pattern')}
           />
 
-          <div className="charts-row">
-            <div className="anomaly-panels">
-              <SpendAnomalyPanel type="budget" theme={theme} monthData={monthData} />
-              <SpendAnomalyPanel type="pattern" theme={theme} monthData={monthData} />
+          <div className="tab-bar">
+            <div className={`tab${activeTab === 'budget' ? ' active' : ''}`} onClick={() => setActiveTab('budget')}>
+              Budget-Based <span className="tab-badge">{filteredBudget.length}</span>
             </div>
-
-            <DistributionCard budget={budget} pattern={pattern} view={distView} onChangeView={setDistView} theme={theme} />
+            <div className={`tab${activeTab === 'pattern' ? ' active' : ''}`} onClick={() => setActiveTab('pattern')}>
+              Pattern-Based <span className="tab-badge">{filteredPattern.length}</span>
+            </div>
           </div>
 
-          <div className="card anomaly-card">
-            <div className="tab-bar">
-              <div className={`tab${activeTab === 'budget' ? ' active' : ''}`} onClick={() => setActiveTab('budget')}>
-                Budget-Based <span className="tab-badge">{filteredBudget.length}</span>
-              </div>
-              <div className={`tab${activeTab === 'pattern' ? ' active' : ''}`} onClick={() => setActiveTab('pattern')}>
-                Pattern-Based <span className="tab-badge">{filteredPattern.length}</span>
-              </div>
+          {activeTab === 'budget' ? (
+            <div className="charts-row">
+              <SpendAnomalyPanel type="budget" theme={theme} monthData={monthData} />
+              <DistributionCard
+                budget={budget}
+                pattern={[]}
+                view={distView}
+                onChangeView={setDistView}
+                theme={theme}
+                subtitle="Budget anomaly distribution"
+              />
             </div>
+          ) : (
+            <div className="charts-row">
+              <SpendAnomalyPanel type="pattern" theme={theme} monthData={monthData} />
+              <DistributionCard
+                budget={[]}
+                pattern={pattern}
+                view={distView}
+                onChangeView={setDistView}
+                theme={theme}
+                subtitle="Pattern anomaly distribution"
+              />
+            </div>
+          )}
 
+          <div className="card anomaly-card">
             <TableControls
               search={search}
               onSearchChange={setSearch}
@@ -147,12 +164,11 @@ function App() {
               savedCount={saved.size}
             />
 
-            <div className={`tab-panel${activeTab === 'budget' ? ' active' : ''}`}>
+            {activeTab === 'budget' ? (
               <BudgetTable rows={filteredBudget} isSaved={isSaved} onToggleSave={toggleSave} onResolve={resolveBudget} />
-            </div>
-            <div className={`tab-panel${activeTab === 'pattern' ? ' active' : ''}`}>
+            ) : (
               <PatternTable rows={filteredPattern} isSaved={isSaved} onToggleSave={toggleSave} onResolve={resolvePattern} />
-            </div>
+            )}
           </div>
         </main>
       </div>

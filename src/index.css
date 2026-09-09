@@ -295,11 +295,6 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
   align-items: start;
 }
 
-.anomaly-panels {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1.09rem;
-}
 .panel-card { padding: 1.45rem 1.64rem 1.27rem; }
 
 .anomaly-ribbon { display: flex; gap: 2px; margin: 0.91rem 0; }
@@ -404,7 +399,7 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 /* ── Anomaly card ── */
 .anomaly-card { padding: 0; }
 
-.tab-bar { display: flex; border-bottom: 1px solid var(--border); padding: 0 1.45rem; }
+.tab-bar { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.45rem; }
 .tab {
   padding: 1rem 1.09rem 0.91rem;
   font-size: 1.09rem; font-weight: 500;
@@ -467,8 +462,6 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-border-2); border-radiu
 .icon-btn:hover { color: var(--text); border-color: var(--accent); }
 
 /* ── Table ── */
-.tab-panel        { display: none; }
-.tab-panel.active { display: block; }
 .table-wrap       { overflow-x: auto; }
 
 table { width: 100%; border-collapse: collapse; font-size: 1.09rem; }
@@ -607,7 +600,6 @@ tr:hover td { background: rgba(108,106,255,0.05); }
 }
 @media (max-width: 900px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
-  .anomaly-panels { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 768px) {
   .sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }
