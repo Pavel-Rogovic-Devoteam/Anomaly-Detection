@@ -81,30 +81,33 @@ export function Sparkline({
   color,
   bounds,
   isOutlier,
+  weekday,
 }: {
   data: number[];
   spikeIdx: number;
   color: string;
   bounds: IQRBounds;
   isOutlier: boolean;
+  weekday?: string;
 }) {
   const max = Math.max(...data, bounds.upperBound);
   const minV = Math.min(...data) * 0.85;
   const range = max - minV || 1;
   const toY = (v: number) => SPARK_H - ((v - minV) / range) * (SPARK_H - 6) - 3;
+  const lastIdx = data.length - 1;
 
   const points = data
-    .map((v, i) => `${((i / 29) * SPARK_W).toFixed(1)},${toY(v).toFixed(1)}`)
+    .map((v, i) => `${((i / lastIdx) * SPARK_W).toFixed(1)},${toY(v).toFixed(1)}`)
     .join(' ');
 
-  const sx = (spikeIdx / 29) * SPARK_W;
+  const sx = (spikeIdx / lastIdx) * SPARK_W;
   const sy = toY(data[spikeIdx]);
   const boundY = toY(bounds.upperBound);
   const pointColor = isOutlier ? color : 'var(--text-muted)';
 
   return (
     <svg width={SPARK_W} height={SPARK_H} viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} style={{ overflow: 'visible', display: 'block' }}>
-      <title>{`IQR upper bound: ${bounds.upperBound.toFixed(1)} (Q1 ${bounds.q1.toFixed(1)} · Q3 ${bounds.q3.toFixed(1)})`}</title>
+      <title>{`${weekday ? `Typical ${weekday} ` : ''}IQR upper bound: ${bounds.upperBound.toFixed(1)} (Q1 ${bounds.q1.toFixed(1)} · Q3 ${bounds.q3.toFixed(1)})`}</title>
       <line
         x1="0"
         y1={boundY.toFixed(1)}
@@ -121,8 +124,9 @@ export function Sparkline({
   );
 }
 
-export function IqrBadge({ isOutlier, bounds }: { isOutlier: boolean; bounds: IQRBounds }) {
-  const title = `Q1 ${bounds.q1.toFixed(1)} · Q3 ${bounds.q3.toFixed(1)} · IQR ${bounds.iqr.toFixed(1)} · Upper bound ${bounds.upperBound.toFixed(1)}`;
+export function IqrBadge({ isOutlier, bounds, weekday }: { isOutlier: boolean; bounds: IQRBounds; weekday?: string }) {
+  const scope = weekday ? `vs. other ${weekday}s` : 'vs. full history';
+  const title = `${scope} — Q1 ${bounds.q1.toFixed(1)} · Q3 ${bounds.q3.toFixed(1)} · IQR ${bounds.iqr.toFixed(1)} · Upper bound ${bounds.upperBound.toFixed(1)}`;
   return (
     <span className={`iqr-badge${isOutlier ? ' outlier' : ''}`} title={title}>
       {isOutlier ? 'IQR outlier' : 'within IQR'}

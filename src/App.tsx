@@ -5,6 +5,8 @@ import { INITIAL_BUDGET, INITIAL_PATTERN } from './data/anomalies';
 import { useSavedAnomalies } from './hooks/useSavedAnomalies';
 import { useTheme } from './hooks/useTheme';
 import { buildCurrentMonthTimeline } from './utils/currentMonthTimeline';
+import type { CustomRange } from './utils/period';
+import { periodToDays } from './utils/period';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { PageHeader } from './components/PageHeader';
@@ -32,8 +34,10 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('budget');
   const [distView, setDistView] = useState<DistView>('provider');
   const [period, setPeriod] = useState<PeriodOption>('last-month');
+  const [customRange, setCustomRange] = useState<CustomRange | null>(null);
 
   const monthData = useMemo(() => (period === 'current-month' ? buildCurrentMonthTimeline() : null), [period]);
+  const days = useMemo(() => periodToDays(period, customRange), [period, customRange]);
 
   const [activeSev, setActiveSev] = useState<SeverityFilter>('all');
   const [activeProvider, setActiveProvider] = useState<ProviderFilter>('all');
@@ -97,7 +101,7 @@ function App() {
         />
 
         <main className="content">
-          <PageHeader period={period} onChangePeriod={setPeriod} />
+          <PageHeader period={period} onChangePeriod={setPeriod} customRange={customRange} onChangeCustomRange={setCustomRange} />
 
           <StatsRow
             total={stats.total}
@@ -127,7 +131,7 @@ function App() {
 
           {activeTab === 'budget' ? (
             <div className="charts-row">
-              <SpendAnomalyPanel type="budget" theme={theme} monthData={monthData} />
+              <SpendAnomalyPanel type="budget" theme={theme} monthData={monthData} days={days} />
               <DistributionCard
                 budget={budget}
                 pattern={[]}
@@ -139,7 +143,7 @@ function App() {
             </div>
           ) : (
             <div className="charts-row">
-              <SpendAnomalyPanel type="pattern" theme={theme} monthData={monthData} />
+              <SpendAnomalyPanel type="pattern" theme={theme} monthData={monthData} days={days} />
               <DistributionCard
                 budget={[]}
                 pattern={pattern}

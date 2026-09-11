@@ -28,6 +28,12 @@ export interface PatternAnomaly {
   stat: AnomalyStatus;
   ago: number;
   seed: number;
+  /** A weekday (0=Sun..6=Sat) this service routinely costs more on — e.g. a weekly batch job —
+   *  so seasonal (day-of-week) detection treats that day's elevated spend as normal rather than
+   *  flagging it. Only set for demo rows illustrating the behavior; omit for flat, non-seasonal series. */
+  weeklyBumpDow?: number;
+  /** €/day added on weeklyBumpDow. Ignored unless weeklyBumpDow is set. */
+  weeklyBumpAmount?: number;
 }
 
 export type SeverityFilter = 'all' | Severity;

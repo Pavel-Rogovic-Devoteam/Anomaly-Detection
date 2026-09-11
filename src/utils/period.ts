@@ -27,6 +27,29 @@ export const PERIOD_LABELS: Record<Exclude<PeriodOption, 'custom'>, string> = {
   'last-6-months': 'Last 6 months',
 };
 
+const MS_PER_DAY = 86_400_000;
+
+/** How many trailing days of history a period covers, for slicing the historical (non-current-month) series. Clamped to the 180 days of demo history actually generated. */
+export function periodToDays(period: PeriodOption, customRange: CustomRange | null): number {
+  switch (period) {
+    case 'current-month':
+      return 0;
+    case 'last-month':
+      return 30;
+    case 'last-3-months':
+      return 90;
+    case 'last-6-months':
+      return 180;
+    case 'custom': {
+      if (!customRange) return 30;
+      const start = new Date(customRange.start);
+      const end = new Date(customRange.end);
+      const diffDays = Math.round((end.getTime() - start.getTime()) / MS_PER_DAY) + 1;
+      return Math.min(180, Math.max(1, diffDays));
+    }
+  }
+}
+
 export function getPeriodButtonLabel(period: PeriodOption, customRange: CustomRange | null): string {
   switch (period) {
     case 'current-month':

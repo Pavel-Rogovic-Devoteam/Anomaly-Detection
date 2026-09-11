@@ -1,12 +1,19 @@
 import { useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import type { ChartOptions } from 'chart.js';
+import type { IQRBounds } from '../utils/iqr';
 import type { Theme } from '../types';
-import { TIMELINE_BUDGET_SPEND, TIMELINE_PATTERN_SPEND } from '../data/anomalies';
+import { TIMELINE_BUDGET_SPEND, TIMELINE_DOW, TIMELINE_PATTERN_SPEND } from '../data/anomalies';
 import type { CurrentMonthTimeline } from '../utils/currentMonthTimeline';
-import { computeIQRBounds, getOutlierDirection, getOutlierDirectionAt } from '../utils/iqr';
+import {
+  computeIQRBounds,
+  computeIQRBoundsExcluding,
+  computeSeasonalIQRBoundsAt,
+  getOutlierDirection,
+  WEEKDAY_NAMES,
+} from '../utils/iqr';
 import { daySuffix, eurRounded } from '../utils/format';
-import { getChartPalette, getLast30Dates } from '../utils/chartSetup';
+import { getChartPalette, getLastNDates } from '../utils/chartSetup';
 
 type AnomalyType = 'budget' | 'pattern';
 
@@ -34,47 +41,69 @@ export function SpendAnomalyPanel({
   type,
   theme,
   monthData,
+  days,
 }: {
   type: AnomalyType;
   theme: Theme;
   monthData: CurrentMonthTimeline | null;
+  days: number;
 }) {
   const cfg = CONFIG[type];
   const palette = useMemo(() => getChartPalette(theme), [theme]);
+  const showLowSide = type === 'pattern';
 
-  const { labels, spend, todayIndex, bounds } = useMemo(() => {
+  // `bounds` is a single flat range used for the chart's drawn band and the "Normal Range" KPI —
+  // a stable visual reference for the period. `dayBounds[i]` is what actually decides whether day
+  // `i` is flagged: leave-one-out (excluding the day from its own baseline) so it can't inflate the
+  // range it's judged against, and — for Pattern, outside the current-month forecast view — bucketed
+  // by weekday, so a routine Monday pattern doesn't read as an anomaly relative to the rest of the week.
+  const { labels, spend, todayIndex, bounds, dayBounds, weekday } = useMemo(() => {
     if (monthData) {
       const elapsed = monthData.todayDate;
       const source = type === 'budget' ? monthData.budgetSpend : monthData.patternSpend;
+      const sample = source.slice(0, elapsed);
+      const flatBounds = computeIQRBounds(sample);
+      const dayBounds = source.map((_, i) => (i < elapsed ? computeIQRBoundsExcluding(sample, i) : flatBounds));
       return {
         labels: monthData.labels,
         spend: source,
         todayIndex: elapsed - 1,
-        bounds: computeIQRBounds(source.slice(0, elapsed)),
+        bounds: flatBounds,
+        dayBounds,
+        weekday: source.map(() => null as string | null),
       };
     }
-    const source = type === 'budget' ? TIMELINE_BUDGET_SPEND : TIMELINE_PATTERN_SPEND;
+    const fullSource = type === 'budget' ? TIMELINE_BUDGET_SPEND : TIMELINE_PATTERN_SPEND;
+    const n = Math.min(days, fullSource.length);
+    const offset = fullSource.length - n;
+    const flatBounds = computeIQRBounds(fullSource);
+    const dayBounds = Array.from({ length: n }, (_, i) => {
+      const fullIdx = offset + i;
+      return type === 'pattern'
+        ? computeSeasonalIQRBoundsAt(fullSource, TIMELINE_DOW, fullIdx)
+        : computeIQRBoundsExcluding(fullSource, fullIdx);
+    });
+    const weekday = Array.from({ length: n }, (_, i) => (type === 'pattern' ? WEEKDAY_NAMES[TIMELINE_DOW[offset + i]] : null));
     return {
-      labels: getLast30Dates(),
-      spend: source,
-      todayIndex: source.length - 1,
-      bounds: computeIQRBounds(source),
+      labels: getLastNDates(n),
+      spend: fullSource.slice(-n),
+      todayIndex: n - 1,
+      bounds: flatBounds,
+      dayBounds,
+      weekday,
     };
-  }, [monthData, type]);
+  }, [monthData, type, days]);
 
   const showForecast = monthData !== null && monthData.isIncomplete;
-  const showLowSide = type === 'pattern';
 
-  // Real (non-forecast) days are tested leave-one-out, excluding themselves from the sample
-  // that determines their own bounds — otherwise a big spike inflates the range it's judged
-  // against. Forecast days aren't part of that sample, so they're just checked against it.
-  const direction = useMemo(() => {
-    const sample = spend.slice(0, todayIndex + 1);
-    return spend.map((v, i) => {
-      const dir = i <= todayIndex ? getOutlierDirectionAt(sample, i) : getOutlierDirection(v, bounds);
-      return !showLowSide && dir === 'low' ? null : dir;
-    });
-  }, [spend, bounds, showLowSide, todayIndex]);
+  const direction = useMemo(
+    () =>
+      spend.map((v, i) => {
+        const dir = getOutlierDirection(v, dayBounds[i]);
+        return !showLowSide && dir === 'low' ? null : dir;
+      }),
+    [spend, dayBounds, showLowSide],
+  );
 
   const stats = useMemo(() => {
     let aboveCount = 0;
@@ -185,8 +214,14 @@ export function SpendAnomalyPanel({
               const i = item.dataIndex;
               const isForecastPoint = showForecast && i > todayIndex;
               const lines = [`${cfg.label} spend: ${eurRounded(spend[i])}${isForecastPoint ? ' (forecast)' : ''}`];
-              if (direction[i] === 'high') lines.push(`⚠ Above IQR upper bound (${eurRounded(bounds.upperBound)})`);
-              if (direction[i] === 'low') lines.push(`⚠ Below IQR lower bound (${eurRounded(bounds.lowerBound)})`);
+              const b: IQRBounds = dayBounds[i];
+              const wd = weekday[i];
+              if (direction[i] === 'high') {
+                lines.push(wd ? `⚠ Above normal for a ${wd} (${eurRounded(b.upperBound)})` : `⚠ Above IQR upper bound (${eurRounded(b.upperBound)})`);
+              }
+              if (direction[i] === 'low') {
+                lines.push(wd ? `⚠ Below normal for a ${wd} (${eurRounded(b.lowerBound)})` : `⚠ Below IQR lower bound (${eurRounded(b.lowerBound)})`);
+              }
               return lines;
             },
           },
@@ -206,7 +241,7 @@ export function SpendAnomalyPanel({
         },
       },
     }),
-    [palette, spend, direction, bounds, showForecast, todayIndex, cfg],
+    [palette, spend, direction, dayBounds, weekday, showForecast, todayIndex, cfg],
   );
 
   return (
@@ -219,7 +254,7 @@ export function SpendAnomalyPanel({
               ? monthData.isIncomplete
                 ? `${monthData.monthLabel} · actual through the ${monthData.todayDate}${daySuffix(monthData.todayDate)}, forecast after`
                 : monthData.monthLabel
-              : 'Apr 6 – May 7, 2026'}
+              : `${labels[0]} – ${labels[labels.length - 1]}, 2026`}
           </div>
         </div>
       </div>

@@ -8,12 +8,15 @@ const OPTIONS: PeriodOption[] = ['current-month', 'last-month', 'last-3-months',
 export function PeriodSelector({
   period,
   onChangePeriod,
+  customRange,
+  onChangeCustomRange,
 }: {
   period: PeriodOption;
   onChangePeriod: (period: PeriodOption) => void;
+  customRange: CustomRange | null;
+  onChangeCustomRange: (range: CustomRange) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [customRange, setCustomRange] = useState<CustomRange | null>(null);
   const [draftStart, setDraftStart] = useState('');
   const [draftEnd, setDraftEnd] = useState('');
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -41,7 +44,7 @@ export function PeriodSelector({
 
   const applyCustomRange = () => {
     if (!draftStart || !draftEnd) return;
-    setCustomRange({ start: draftStart, end: draftEnd });
+    onChangeCustomRange({ start: draftStart, end: draftEnd });
     setOpen(false);
   };
 

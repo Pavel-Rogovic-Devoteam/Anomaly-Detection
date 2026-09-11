@@ -1,4 +1,4 @@
-import { TIMELINE_BUDGET_SPEND, TIMELINE_PATTERN_SPEND } from '../data/anomalies';
+import { TIMELINE_BUDGET_SPEND_RECENT30, TIMELINE_PATTERN_SPEND_RECENT30 } from '../data/anomalies';
 
 export interface CurrentMonthTimeline {
   labels: string[];
@@ -27,8 +27,8 @@ export function buildCurrentMonthTimeline(): CurrentMonthTimeline {
     new Date(year, monthIndex, i + 1).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
   );
 
-  const budgetSpendSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_BUDGET_SPEND[i % TIMELINE_BUDGET_SPEND.length]);
-  const patternSpendSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_PATTERN_SPEND[i % TIMELINE_PATTERN_SPEND.length]);
+  const budgetSpendSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_BUDGET_SPEND_RECENT30[i % TIMELINE_BUDGET_SPEND_RECENT30.length]);
+  const patternSpendSoFar = Array.from({ length: todayDate }, (_, i) => TIMELINE_PATTERN_SPEND_RECENT30[i % TIMELINE_PATTERN_SPEND_RECENT30.length]);
 
   const budgetSpend = extendCyclically(budgetSpendSoFar, todayDate, daysInMonth);
   const patternSpend = extendCyclically(patternSpendSoFar, todayDate, daysInMonth);

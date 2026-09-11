@@ -12,11 +12,24 @@ import type { Theme } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Filler, Tooltip);
 
-export function getLast30Dates(): string[] {
-  return Array.from({ length: 30 }, (_, i) => {
-    const d = new Date('2026-05-07');
-    d.setDate(d.getDate() - (29 - i));
+/** Demo "today" — every historical series (up to 6 months back) is anchored to this fixed date,
+ * so day-of-week assignments stay deterministic regardless of when the app is actually run. */
+export const DEMO_ANCHOR = '2026-05-07';
+
+export function getLastNDates(n: number): string[] {
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(DEMO_ANCHOR);
+    d.setDate(d.getDate() - (n - 1 - i));
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  });
+}
+
+/** Day-of-week (0=Sun..6=Sat) for each of the last `n` days ending on DEMO_ANCHOR, aligned index-for-index with getLastNDates(n). */
+export function getDowForLastN(n: number): number[] {
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(DEMO_ANCHOR);
+    d.setDate(d.getDate() - (n - 1 - i));
+    return d.getDay();
   });
 }
 

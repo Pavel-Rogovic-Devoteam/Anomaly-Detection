@@ -48,3 +48,23 @@ export function computeIQRBoundsExcluding(values: number[], excludeIndex: number
 export function getOutlierDirectionAt(values: number[], index: number): 'high' | 'low' | null {
   return getOutlierDirection(values[index], computeIQRBoundsExcluding(values, index));
 }
+
+export const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/**
+ * Bounds computed from only the OTHER points that share `dow[index]`'s weekday (leave-one-out
+ * within that weekday's own history) — a day is judged against its own weekday's pattern (e.g.
+ * Monday vs. prior Mondays), not the whole week mixed together, so a routine weekly job (a batch
+ * ingestion that always lands on Monday) reads as normal instead of a false anomaly. Falls back
+ * to a single-point bucket (never an outlier) if there's no other same-weekday history yet.
+ */
+export function computeSeasonalIQRBoundsAt(values: number[], dow: number[], index: number): IQRBounds {
+  const targetDow = dow[index];
+  const bucket = values.filter((_, i) => dow[i] === targetDow && i !== index);
+  return computeIQRBounds(bucket.length > 0 ? bucket : [values[index]]);
+}
+
+/** Seasonal (day-of-week), leave-one-out outlier direction for `values[index]`. */
+export function getSeasonalOutlierDirectionAt(values: number[], dow: number[], index: number): 'high' | 'low' | null {
+  return getOutlierDirection(values[index], computeSeasonalIQRBoundsAt(values, dow, index));
+}

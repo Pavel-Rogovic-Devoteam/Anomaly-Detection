@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import type { PatternAnomaly, Severity } from '../types';
-import { SEV_RANK } from '../data/anomalies';
+import { SEV_RANK, TIMELINE_DOW } from '../data/anomalies';
 import { eur } from '../utils/format';
-import { computeIQRBoundsExcluding, getOutlierDirection } from '../utils/iqr';
+import { computeSeasonalIQRBoundsAt, getOutlierDirection, WEEKDAY_NAMES } from '../utils/iqr';
 import type { Column } from '../utils/sort';
 import { sortRows } from '../utils/sort';
-import { sparkData } from '../utils/sparkline';
+import { sparkData, SPARK_HISTORY_DAYS } from '../utils/sparkline';
 import { useSortState } from '../hooks/useSortState';
 import { SortableThead } from './SortableThead';
 import { DetectedCell, IqrBadge, ProviderLabel, SaveButton, SeverityBadge, ServiceCell, Sparkline } from './TableBits';
@@ -15,10 +15,10 @@ const COLUMNS: Column<PatternAnomaly>[] = [
   { key: 'svc', label: 'Service', getValue: (a) => a.svc },
   { key: 'acct', label: 'Account / Project', getValue: (a) => a.acct },
   { key: 'prov', label: 'Provider', getValue: (a) => a.prov },
-  { key: 'base', label: '30d Baseline', getValue: (a) => a.base },
+  { key: 'base', label: 'Baseline', getValue: (a) => a.base },
   { key: 'spike', label: 'Spike Cost', getValue: (a) => a.spike },
   { key: 'dev', label: 'Deviation', getValue: (a) => a.dev },
-  { key: null, label: 'Trend (30d)' },
+  { key: null, label: 'Trend (6mo)' },
   { key: 'sev', label: 'Severity', getValue: (a) => SEV_RANK[a.sev] },
   { key: 'ago', label: 'Detected', getValue: (a) => a.ago },
   { key: null, label: 'Action' },
@@ -43,13 +43,17 @@ function PatternRow({
   onResolve: (id: string) => void;
 }) {
   const spikeMult = anomaly.spike / anomaly.base;
-  const spikeIdx = 29 - anomaly.ago;
-  const series = useMemo(
-    () => sparkData(anomaly.base, spikeMult, anomaly.ago, anomaly.seed),
-    [anomaly.base, spikeMult, anomaly.ago, anomaly.seed],
-  );
-  // Leave-one-out: bounds exclude the spike day itself, so it can't inflate the range it's tested against.
-  const bounds = useMemo(() => computeIQRBoundsExcluding(series, spikeIdx), [series, spikeIdx]);
+  const spikeIdx = SPARK_HISTORY_DAYS - 1 - anomaly.ago;
+  const { weeklyBumpDow, weeklyBumpAmount } = anomaly;
+  const series = useMemo(() => {
+    const weeklyBump = weeklyBumpDow !== undefined ? { [weeklyBumpDow]: weeklyBumpAmount ?? 0 } : undefined;
+    return sparkData(anomaly.base, spikeMult, anomaly.ago, anomaly.seed, { dow: TIMELINE_DOW, weeklyBump });
+  }, [anomaly.base, spikeMult, anomaly.ago, anomaly.seed, weeklyBumpDow, weeklyBumpAmount]);
+  // Seasonal, leave-one-out: bounds come from this row's OTHER same-weekday days (up to 6 months of
+  // history), excluding the spike day itself — so a routine weekly pattern (e.g. a Monday batch job)
+  // reads as normal, while the same magnitude on an off-day still stands out.
+  const weekday = WEEKDAY_NAMES[TIMELINE_DOW[spikeIdx]];
+  const bounds = useMemo(() => computeSeasonalIQRBoundsAt(series, TIMELINE_DOW, spikeIdx), [series, spikeIdx]);
   const isOutlier = getOutlierDirection(series[spikeIdx], bounds) === 'high';
 
   return (
@@ -75,8 +79,8 @@ function PatternRow({
       </td>
       <td>
         <div className="spark-cell">
-          <Sparkline data={series} spikeIdx={spikeIdx} color={SPARK_COLOR[anomaly.sev]} bounds={bounds} isOutlier={isOutlier} />
-          <IqrBadge isOutlier={isOutlier} bounds={bounds} />
+          <Sparkline data={series} spikeIdx={spikeIdx} color={SPARK_COLOR[anomaly.sev]} bounds={bounds} isOutlier={isOutlier} weekday={weekday} />
+          <IqrBadge isOutlier={isOutlier} bounds={bounds} weekday={weekday} />
         </div>
       </td>
       <td>

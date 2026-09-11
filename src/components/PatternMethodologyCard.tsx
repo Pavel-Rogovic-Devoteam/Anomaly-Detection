@@ -1,12 +1,12 @@
 import { useState } from 'react';
 
 const METRICS = [
-  { label: '30-Day Baseline', desc: "A service's typical daily spend (€/day) over its trailing 30-day window." },
+  { label: 'Baseline', desc: "A service's typical daily spend (€/day) on an ordinary (non-seasonal) day." },
   { label: 'Spike Cost', desc: 'The actual daily spend (€/day) observed on the day being evaluated.' },
   { label: 'Deviation %', desc: 'How far the spike sits above baseline, as a percentage.' },
   {
     label: 'Daily Spend Series',
-    desc: 'The full 30 daily values that feed the statistical bounds below — each day tested against bounds computed from the other 29.',
+    desc: 'Up to 6 months of daily values, bucketed by weekday — each day tested against other days sharing its weekday, not the whole week mixed together.',
   },
 ];
 
@@ -39,12 +39,20 @@ export function PatternMethodologyCard() {
         <div className="methodology-body">
           <p className="methodology-intro">
             Pattern-based anomalies flag days where a service&apos;s spend breaks from its own recent behavior — not a
-            fixed budget, but a statistical deviation from its 30-day pattern. Detection runs independently per
-            service, using the <strong>Interquartile Range (IQR)</strong> method rather than a mean/standard-deviation
-            z-score, since IQR stays reliable on skewed, spike-prone cost data where the outliers themselves would
-            otherwise distort the average. The bounds are also computed <strong>leave-one-out</strong> — excluding
-            the very day being evaluated — so one big spike can&apos;t inflate the range it&apos;s about to be judged
-            against.
+            fixed budget, but a statistical deviation from its own history, drawn from up to 6 months of daily spend
+            (set the period above to widen or narrow that window). Detection runs independently per service, using
+            the <strong>Interquartile Range (IQR)</strong> method rather than a mean/standard-deviation z-score, since
+            IQR stays reliable on skewed, spike-prone cost data where the outliers themselves would otherwise distort
+            the average. Bounds are computed <strong>leave-one-out</strong> — excluding the very day being evaluated —
+            so one big spike can&apos;t inflate the range it&apos;s about to be judged against.
+          </p>
+
+          <p className="methodology-intro">
+            Detection is also <strong>seasonal</strong>: a day is compared only to its own weekday&apos;s history, not
+            the whole week mixed together. A service that runs a weekly Monday batch job — a BigQuery ingestion, say —
+            will show elevated spend every Monday; measured against the full week that looks like a spike, but
+            measured against prior Mondays it&apos;s the norm, so it&apos;s correctly left unflagged. The same spend
+            showing up on a Wednesday, with no such history behind it, still stands out.
           </p>
 
           <div className="methodology-section-label">Metrics used</div>
@@ -61,7 +69,7 @@ export function PatternMethodologyCard() {
           <div className="methodology-formulas">
             <div className="formula-line">Deviation % = (Spike − Baseline) / Baseline × 100</div>
             <div className="formula-divider" />
-            <div className="formula-line">Q1, Q3 = 25th / 75th percentile of the series, leaving out the day being tested</div>
+            <div className="formula-line">Q1, Q3 = 25th / 75th percentile of days sharing the same weekday, leaving out the day being tested</div>
             <div className="formula-line">IQR = Q3 − Q1</div>
             <div className="formula-line">Upper Bound = Q3 + 1.5 × IQR</div>
             <div className="formula-line">Lower Bound = Q1 − 1.5 × IQR</div>
@@ -71,10 +79,10 @@ export function PatternMethodologyCard() {
 
           <p className="methodology-note">
             In the table below, the IQR outlier badge, sparkline dashed line, and Q1/Q3 tooltip all come from that
-            row&apos;s leave-one-out bounds. In the Pattern Spend chart above, the shaded band shows the full-period
-            range for reference, while each day is still flagged using its own leave-one-out bounds — so a day can
-            occasionally sit just inside the drawn band and still be marked anomalous (or vice versa), since removing
-            it from its own sample shifts the effective threshold slightly.
+            row&apos;s own weekday-bucketed, leave-one-out bounds. In the Pattern Spend chart above, the shaded band
+            shows the full-period range for reference, while each day is still flagged against its own weekday&apos;s
+            bounds — so a day can occasionally sit just inside the drawn band and still be marked anomalous (or vice
+            versa), since a tighter, weekday-specific range can differ from the flat one drawn on screen.
           </p>
         </div>
       )}
