@@ -1,6 +1,6 @@
 # Anomaly Detection
 
-FinOps anomaly detection dashboard prototype, styled to match OPulse. Detects two anomaly types:
+FinOps anomaly detection dashboard prototype, styled to match Pulse. Detects two anomaly types:
 
 - **Budget-based** — cost that has exceeded a configured budget.
 - **Pattern-based** — an unusual spike detected against a 30-day cost baseline.

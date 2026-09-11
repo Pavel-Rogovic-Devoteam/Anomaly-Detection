@@ -33,7 +33,7 @@ export function Sidebar({
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       <div className="sidebar-logo">
-        <img src="/logo-pulse.png" alt="OPulse by Devoteam" />
+        <img src="/logo-pulse.png" alt="Pulse by Devoteam" />
       </div>
 
       <nav>
