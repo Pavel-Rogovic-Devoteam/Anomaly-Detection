@@ -11,7 +11,7 @@ const METRICS = [
 ];
 
 export function PatternMethodologyCard() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="card methodology-card">
