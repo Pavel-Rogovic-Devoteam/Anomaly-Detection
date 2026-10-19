@@ -1,5 +1,6 @@
 export function StatsRow({
   total,
+  weekDelta,
   critical,
   budgetActive,
   budgetTotal,
@@ -15,6 +16,8 @@ export function StatsRow({
   onSelectPattern,
 }: {
   total: number;
+  /** Anomalies detected in the last 7 days minus the 7 days before that. */
+  weekDelta: number;
   critical: number;
   budgetActive: number;
   budgetTotal: number;
@@ -41,7 +44,9 @@ export function StatsRow({
           Total Anomalies
         </div>
         <div className="stat-value">{total}</div>
-        <div className="stat-trend up">↑ 4 vs last 7 days</div>
+        <div className={`stat-trend${weekDelta > 0 ? ' up' : ''}`}>
+          {weekDelta > 0 ? '↑' : weekDelta < 0 ? '↓' : '→'} {Math.abs(weekDelta)} vs previous 7 days
+        </div>
       </div>
 
       <div
@@ -90,7 +95,7 @@ export function StatsRow({
           Pattern Spikes
         </div>
         <div className="stat-value purple">{patternActive}</div>
-        <div className="stat-trend">{patternTotal} detected in 30d window</div>
+        <div className="stat-trend">{patternTotal} detected in last 90 days</div>
       </div>
     </div>
   );

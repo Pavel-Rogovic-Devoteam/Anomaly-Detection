@@ -1,5 +1,7 @@
+import type { DatasetId } from '../data/dataset';
 import type { PeriodOption } from '../types';
 import type { CustomRange } from '../utils/period';
+import { DataSourceToggle } from './DataSourceToggle';
 import { PeriodSelector } from './PeriodSelector';
 
 export function PageHeader({
@@ -7,11 +9,15 @@ export function PageHeader({
   onChangePeriod,
   customRange,
   onChangeCustomRange,
+  dataSource,
+  onChangeDataSource,
 }: {
   period: PeriodOption;
   onChangePeriod: (period: PeriodOption) => void;
   customRange: CustomRange | null;
   onChangeCustomRange: (range: CustomRange) => void;
+  dataSource: DatasetId;
+  onChangeDataSource: (id: DatasetId) => void;
 }) {
   return (
     <div className="page-header">
@@ -20,6 +26,7 @@ export function PageHeader({
         <p className="page-subtitle">Budget breaches and pattern-based cost spikes, with up to 6 months of history</p>
       </div>
       <div className="page-actions">
+        <DataSourceToggle value={dataSource} onChange={onChangeDataSource} />
         <PeriodSelector period={period} onChangePeriod={onChangePeriod} customRange={customRange} onChangeCustomRange={onChangeCustomRange} />
         <button className="page-btn accent">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

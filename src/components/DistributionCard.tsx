@@ -22,7 +22,7 @@ function providerRows(all: (BudgetAnomaly | PatternAnomaly)[]): DistRow[] {
 function serviceRows(all: (BudgetAnomaly | PatternAnomaly)[]): DistRow[] {
   const counts: Record<string, number> = {};
   all.forEach((a) => {
-    const cat = categoryFor(a.svc);
+    const cat = categoryFor('serviceName' in a && a.serviceName ? a.serviceName : a.svc);
     counts[cat] = (counts[cat] || 0) + 1;
   });
   return Object.entries(counts)

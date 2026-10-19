@@ -109,6 +109,43 @@ const SERVICE_CATEGORY: Record<string, string> = {
   'Cloud Run Services': 'Serverless',
   'CloudFront Distribution': 'Networking',
   'GCP Pub/Sub': 'Networking',
+
+  // Service names as Pulse reports them (Pulse Demo dataset)
+  'AmazonEC2': 'Compute',
+  'AmazonEKS': 'Compute',
+  'ComputeSavingsPlans': 'Compute',
+  'Compute Engine': 'Compute',
+  'Kubernetes Engine': 'Compute',
+  'Virtual Machines': 'Compute',
+  'AmazonS3': 'Storage',
+  'AmazonECR': 'Storage',
+  'Storage': 'Storage',
+  'BigQuery': 'Database',
+  'AmazonRDS': 'Database',
+  'Cloud SQL': 'Database',
+  'Gemini API': 'AI / ML',
+  'Cloud Run': 'Serverless',
+  'Cloud Scheduler': 'Serverless',
+  'AmazonVPC': 'Networking',
+  'AmazonSNS': 'Networking',
+  'Cloud DNS': 'Networking',
+  'Cloud Pub/Sub': 'Networking',
+  'Virtual Network': 'Networking',
+  'AWSIAMAccessAnalyzer': 'Security & Ops',
+  'AWSSecurityHub': 'Security & Ops',
+  'AWSCloudTrail': 'Security & Ops',
+  'AWSConfig': 'Security & Ops',
+  'AWSSystemsManager': 'Security & Ops',
+  'AWSSecretsManager': 'Security & Ops',
+  'AmazonGuardDuty': 'Security & Ops',
+  'AmazonCloudWatch': 'Security & Ops',
+  'auditmanager': 'Security & Ops',
+  'awskms': 'Security & Ops',
+  'Security Command Center': 'Security & Ops',
+  'Cloud Monitoring': 'Security & Ops',
+  'Secret Manager': 'Security & Ops',
+  'Cloud Key Management Service (KMS)': 'Security & Ops',
+  'Microsoft Defender for Cloud': 'Security & Ops',
 };
 
 export const SERVICE_CATEGORY_COLORS: Record<string, string> = {
@@ -118,6 +155,7 @@ export const SERVICE_CATEGORY_COLORS: Record<string, string> = {
   'AI / ML': '#8b5cf6',
   'Serverless': '#10b981',
   'Networking': '#f97316',
+  'Security & Ops': '#ec4899',
 };
 
 export function categoryFor(svc: string): string {

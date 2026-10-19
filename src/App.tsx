@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import './utils/chartSetup';
 import type { DistView, NavSectionKey, PeriodOption, ProviderFilter, SeverityFilter } from './types';
-import { INITIAL_BUDGET, INITIAL_PATTERN } from './data/anomalies';
+import { DATASETS } from './data/datasets';
+import type { DatasetId } from './data/dataset';
 import { useSavedAnomalies } from './hooks/useSavedAnomalies';
 import { useTheme } from './hooks/useTheme';
 import { buildCurrentMonthTimeline } from './utils/currentMonthTimeline';
@@ -21,8 +22,19 @@ import { PatternTable } from './components/PatternTable';
 type Tab = 'budget' | 'pattern';
 
 function App() {
-  const [budget, setBudget] = useState(INITIAL_BUDGET);
-  const [pattern, setPattern] = useState(INITIAL_PATTERN);
+  const [dataSource, setDataSource] = useState<DatasetId>('pulse-demo');
+  const dataset = DATASETS[dataSource];
+
+  // Resolve is local-only (Pulse is read-only), so it's tracked as a set of ids layered over the dataset's rows.
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(() => new Set());
+  const budget = useMemo(
+    () => dataset.budget.map((a) => (resolvedIds.has(a.id) ? { ...a, stat: 'resolved' as const } : a)),
+    [dataset, resolvedIds],
+  );
+  const pattern = useMemo(
+    () => dataset.pattern.map((a) => (resolvedIds.has(a.id) ? { ...a, stat: 'resolved' as const } : a)),
+    [dataset, resolvedIds],
+  );
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openSections, setOpenSections] = useState<Record<NavSectionKey, boolean>>({
@@ -36,7 +48,10 @@ function App() {
   const [period, setPeriod] = useState<PeriodOption>('last-month');
   const [customRange, setCustomRange] = useState<CustomRange | null>(null);
 
-  const monthData = useMemo(() => (period === 'current-month' ? buildCurrentMonthTimeline() : null), [period]);
+  const monthData = useMemo(
+    () => (period === 'current-month' ? buildCurrentMonthTimeline(dataset.monthSource) : null),
+    [period, dataset],
+  );
   const days = useMemo(() => periodToDays(period, customRange), [period, customRange]);
 
   const [activeSev, setActiveSev] = useState<SeverityFilter>('all');
@@ -51,12 +66,8 @@ function App() {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  const resolveBudget = useCallback((id: string) => {
-    setBudget((prev) => prev.map((a) => (a.id === id ? { ...a, stat: 'resolved' } : a)));
-  }, []);
-
-  const resolvePattern = useCallback((id: string) => {
-    setPattern((prev) => prev.map((a) => (a.id === id ? { ...a, stat: 'resolved' } : a)));
+  const resolve = useCallback((id: string) => {
+    setResolvedIds((prev) => new Set(prev).add(id));
   }, []);
 
   const searchQ = search.toLowerCase().trim();
@@ -81,6 +92,7 @@ function App() {
     const all = [...budget, ...pattern];
     return {
       total: all.length,
+      weekDelta: all.filter((a) => a.ago <= 6).length - all.filter((a) => a.ago >= 7 && a.ago <= 13).length,
       critical: all.filter((a) => a.sev === 'critical').length,
       budgetActive: budget.filter((a) => a.stat !== 'resolved').length,
       patternActive: pattern.filter((a) => a.stat !== 'resolved').length,
@@ -101,10 +113,18 @@ function App() {
         />
 
         <main className="content">
-          <PageHeader period={period} onChangePeriod={setPeriod} customRange={customRange} onChangeCustomRange={setCustomRange} />
+          <PageHeader
+            period={period}
+            onChangePeriod={setPeriod}
+            customRange={customRange}
+            onChangeCustomRange={setCustomRange}
+            dataSource={dataSource}
+            onChangeDataSource={setDataSource}
+          />
 
           <StatsRow
             total={stats.total}
+            weekDelta={stats.weekDelta}
             critical={stats.critical}
             budgetActive={stats.budgetActive}
             budgetTotal={budget.length}
@@ -131,7 +151,7 @@ function App() {
 
           {activeTab === 'budget' ? (
             <div className="charts-row">
-              <SpendAnomalyPanel type="budget" theme={theme} monthData={monthData} days={days} />
+              <SpendAnomalyPanel type="budget" theme={theme} monthData={monthData} days={days} dataset={dataset} />
               <DistributionCard
                 budget={budget}
                 pattern={[]}
@@ -143,7 +163,7 @@ function App() {
             </div>
           ) : (
             <div className="charts-row">
-              <SpendAnomalyPanel type="pattern" theme={theme} monthData={monthData} days={days} />
+              <SpendAnomalyPanel type="pattern" theme={theme} monthData={monthData} days={days} dataset={dataset} />
               <DistributionCard
                 budget={[]}
                 pattern={pattern}
@@ -172,9 +192,9 @@ function App() {
             />
 
             {activeTab === 'budget' ? (
-              <BudgetTable rows={filteredBudget} isSaved={isSaved} onToggleSave={toggleSave} onResolve={resolveBudget} />
+              <BudgetTable rows={filteredBudget} isSaved={isSaved} onToggleSave={toggleSave} onResolve={resolve} />
             ) : (
-              <PatternTable rows={filteredPattern} isSaved={isSaved} onToggleSave={toggleSave} onResolve={resolvePattern} />
+              <PatternTable rows={filteredPattern} dataset={dataset} isSaved={isSaved} onToggleSave={toggleSave} onResolve={resolve} />
             )}
           </div>
         </main>

@@ -3,7 +3,7 @@ import { Line } from 'react-chartjs-2';
 import type { ChartOptions } from 'chart.js';
 import type { IQRBounds } from '../utils/iqr';
 import type { Theme } from '../types';
-import { TIMELINE_BUDGET_SPEND, TIMELINE_DOW, TIMELINE_PATTERN_SPEND } from '../data/anomalies';
+import type { Dataset } from '../data/dataset';
 import type { CurrentMonthTimeline } from '../utils/currentMonthTimeline';
 import {
   computeIQRBounds,
@@ -13,7 +13,7 @@ import {
   WEEKDAY_NAMES,
 } from '../utils/iqr';
 import { daySuffix, eurRounded } from '../utils/format';
-import { getChartPalette, getLastNDates } from '../utils/chartSetup';
+import { getChartPalette } from '../utils/chartSetup';
 
 type AnomalyType = 'budget' | 'pattern';
 
@@ -42,11 +42,13 @@ export function SpendAnomalyPanel({
   theme,
   monthData,
   days,
+  dataset,
 }: {
   type: AnomalyType;
   theme: Theme;
   monthData: CurrentMonthTimeline | null;
   days: number;
+  dataset: Dataset;
 }) {
   const cfg = CONFIG[type];
   const palette = useMemo(() => getChartPalette(theme), [theme]);
@@ -73,26 +75,26 @@ export function SpendAnomalyPanel({
         weekday: source.map(() => null as string | null),
       };
     }
-    const fullSource = type === 'budget' ? TIMELINE_BUDGET_SPEND : TIMELINE_PATTERN_SPEND;
+    const fullSource = type === 'budget' ? dataset.budgetSpend : dataset.patternSpend;
     const n = Math.min(days, fullSource.length);
     const offset = fullSource.length - n;
     const flatBounds = computeIQRBounds(fullSource);
     const dayBounds = Array.from({ length: n }, (_, i) => {
       const fullIdx = offset + i;
       return type === 'pattern'
-        ? computeSeasonalIQRBoundsAt(fullSource, TIMELINE_DOW, fullIdx)
+        ? computeSeasonalIQRBoundsAt(fullSource, dataset.dow, fullIdx)
         : computeIQRBoundsExcluding(fullSource, fullIdx);
     });
-    const weekday = Array.from({ length: n }, (_, i) => (type === 'pattern' ? WEEKDAY_NAMES[TIMELINE_DOW[offset + i]] : null));
+    const weekday = Array.from({ length: n }, (_, i) => (type === 'pattern' ? WEEKDAY_NAMES[dataset.dow[offset + i]] : null));
     return {
-      labels: getLastNDates(n),
+      labels: dataset.labels.slice(-n),
       spend: fullSource.slice(-n),
       todayIndex: n - 1,
       bounds: flatBounds,
       dayBounds,
       weekday,
     };
-  }, [monthData, type, days]);
+  }, [monthData, type, days, dataset]);
 
   const showForecast = monthData !== null && monthData.isIncomplete;
 
@@ -254,7 +256,7 @@ export function SpendAnomalyPanel({
               ? monthData.isIncomplete
                 ? `${monthData.monthLabel} · actual through the ${monthData.todayDate}${daySuffix(monthData.todayDate)}, forecast after`
                 : monthData.monthLabel
-              : `${labels[0]} – ${labels[labels.length - 1]}, 2026`}
+              : `${labels[0]} – ${labels[labels.length - 1]}, 2026${dataset.channelNotes[type] ? ` · ${dataset.channelNotes[type]}` : ''}`}
           </div>
         </div>
       </div>

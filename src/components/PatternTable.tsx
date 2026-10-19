@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import type { PatternAnomaly, Severity } from '../types';
-import { SEV_RANK, TIMELINE_DOW } from '../data/anomalies';
+import { SEV_RANK } from '../data/anomalies';
+import type { Dataset } from '../data/dataset';
 import { eur } from '../utils/format';
 import { computeSeasonalIQRBoundsAt, getOutlierDirection, WEEKDAY_NAMES } from '../utils/iqr';
 import type { Column } from '../utils/sort';
 import { sortRows } from '../utils/sort';
-import { sparkData, SPARK_HISTORY_DAYS } from '../utils/sparkline';
 import { useSortState } from '../hooks/useSortState';
 import { SortableThead } from './SortableThead';
 import { DetectedCell, IqrBadge, ProviderLabel, SaveButton, SeverityBadge, ServiceCell, Sparkline } from './TableBits';
@@ -33,27 +33,24 @@ const SPARK_COLOR: Record<Severity, string> = {
 
 function PatternRow({
   anomaly,
+  dataset,
   isSaved,
   onToggleSave,
   onResolve,
 }: {
   anomaly: PatternAnomaly;
+  dataset: Dataset;
   isSaved: boolean;
   onToggleSave: (id: string) => void;
   onResolve: (id: string) => void;
 }) {
-  const spikeMult = anomaly.spike / anomaly.base;
-  const spikeIdx = SPARK_HISTORY_DAYS - 1 - anomaly.ago;
-  const { weeklyBumpDow, weeklyBumpAmount } = anomaly;
-  const series = useMemo(() => {
-    const weeklyBump = weeklyBumpDow !== undefined ? { [weeklyBumpDow]: weeklyBumpAmount ?? 0 } : undefined;
-    return sparkData(anomaly.base, spikeMult, anomaly.ago, anomaly.seed, { dow: TIMELINE_DOW, weeklyBump });
-  }, [anomaly.base, spikeMult, anomaly.ago, anomaly.seed, weeklyBumpDow, weeklyBumpAmount]);
-  // Seasonal, leave-one-out: bounds come from this row's OTHER same-weekday days (up to 6 months of
-  // history), excluding the spike day itself — so a routine weekly pattern (e.g. a Monday batch job)
+  const series = useMemo(() => dataset.patternSeriesFor(anomaly), [dataset, anomaly]);
+  const spikeIdx = series.length - 1 - anomaly.ago;
+  // Seasonal, leave-one-out: bounds come from this row's OTHER same-weekday days (the full history
+  // available), excluding the spike day itself — so a routine weekly pattern (e.g. a Monday batch job)
   // reads as normal, while the same magnitude on an off-day still stands out.
-  const weekday = WEEKDAY_NAMES[TIMELINE_DOW[spikeIdx]];
-  const bounds = useMemo(() => computeSeasonalIQRBoundsAt(series, TIMELINE_DOW, spikeIdx), [series, spikeIdx]);
+  const weekday = WEEKDAY_NAMES[dataset.dow[spikeIdx]];
+  const bounds = useMemo(() => computeSeasonalIQRBoundsAt(series, dataset.dow, spikeIdx), [series, dataset, spikeIdx]);
   const isOutlier = getOutlierDirection(series[spikeIdx], bounds) === 'high';
 
   return (
@@ -104,11 +101,13 @@ function PatternRow({
 
 export function PatternTable({
   rows,
+  dataset,
   isSaved,
   onToggleSave,
   onResolve,
 }: {
   rows: PatternAnomaly[];
+  dataset: Dataset;
   isSaved: (id: string) => boolean;
   onToggleSave: (id: string) => void;
   onResolve: (id: string) => void;
@@ -129,7 +128,14 @@ export function PatternTable({
             </tr>
           ) : (
             sorted.map((a) => (
-              <PatternRow key={a.id} anomaly={a} isSaved={isSaved(a.id)} onToggleSave={onToggleSave} onResolve={onResolve} />
+              <PatternRow
+                key={a.id}
+                anomaly={a}
+                dataset={dataset}
+                isSaved={isSaved(a.id)}
+                onToggleSave={onToggleSave}
+                onResolve={onResolve}
+              />
             ))
           )}
         </tbody>

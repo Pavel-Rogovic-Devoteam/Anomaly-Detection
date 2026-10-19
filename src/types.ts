@@ -13,6 +13,8 @@ export interface BudgetAnomaly {
   sev: Severity;
   stat: AnomalyStatus;
   ago: number;
+  /** Set when the budget is scoped to a single cloud service (e.g. "AmazonEC2"), so it can be grouped by service category. */
+  serviceName?: string;
 }
 
 export interface PatternAnomaly {
